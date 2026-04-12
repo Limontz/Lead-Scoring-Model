@@ -4,10 +4,15 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "marimo>=0.23.1",
+    "plotly>=6.7.0",
+    "polars>=1.39.3",
+]
 
 [dependency-groups]
 dev = [
+    "openai>=2.31.0",
     "pre-commit>=4.5.1",
     "ruff>=0.15.10",
 ]
