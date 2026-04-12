@@ -333,4 +333,7 @@ pyrightconfig.json
 # idea files
 .idea/
 
+#marimo
+__marimo__/
+
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,macos,python,jupyternotebooks
