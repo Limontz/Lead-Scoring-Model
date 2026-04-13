@@ -25,6 +25,10 @@ def _(mo):
 
     None of them represent a big problem and will understand what to do with the nones once I will understand how to use these information.
     Only DEAL_DEMO_SCORE DEAL_NUMBER_TIMES_CONTACTED are strange. They are both none at the same time and none of the leads with none values in these columns are ever closed. However, some of them are SQL which means a demo was booked. Does it mean the client did not show up at the demo?
+
+    There are some **inactive leads**, i.e. leads that were stored in the CRM but did not move to subsequent steps or flagged as lost.
+
+    There are some **leads without any final state**. These leads cannot be used in the model since we do not know their final result.
     """)
     return
 
@@ -107,6 +111,43 @@ def _(mo):
 @app.cell
 def _(lead_df, plot_distributions):
     plot_distributions(lead_df)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Funnel Data Quality
+    """)
+    return
+
+
+@app.cell
+def _(
+    check_closed_consistency,
+    check_final_state_consistency,
+    check_stage_progression,
+    check_temporal_order,
+    lead_df,
+):
+    print(check_stage_progression(lead_df))
+    print(check_temporal_order(lead_df))
+    print(check_closed_consistency(lead_df))
+    print(check_final_state_consistency(lead_df))
+    return
+
+
+@app.cell
+def _(check_inactive_deals, lead_df):
+    inactive_deals_df = check_inactive_deals(lead_df)
+    inactive_deals_df
+    return
+
+
+@app.cell
+def _(get_leads_wo_final_state, lead_df):
+    leads_wo_final_state = get_leads_wo_final_state(lead_df)
+    leads_wo_final_state
     return
 
 
@@ -196,6 +237,111 @@ def _(go, pl):
             fig.show()
 
     return (plot_distributions,)
+
+
+@app.cell
+def _(pl):
+    def check_stage_progression(df: pl.DataFrame):
+        return {
+            "sql_without_mql": df.filter(
+                pl.col("DEAL_SQL_DATETIME").is_not_null() &
+                pl.col("DEAL_MQL_DATETIME").is_null()
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+
+            "opportunity_without_sql": df.filter(
+                pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null() &
+                pl.col("DEAL_SQL_DATETIME").is_null()
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+
+            "won_without_opportunity": df.filter(
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
+                pl.col("DEAL_OPPORTUNITY_DATETIME").is_null()
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+        }
+
+    def check_temporal_order(df: pl.DataFrame):
+        return {
+            "mql_before_created": df.filter(
+                pl.col("DEAL_MQL_DATETIME") < pl.col("DEAL_CREATEDATE")
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+
+            "sql_before_mql": df.filter(
+                pl.col("DEAL_SQL_DATETIME") < pl.col("DEAL_MQL_DATETIME")
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+
+            "opp_before_sql": df.filter(
+                pl.col("DEAL_OPPORTUNITY_DATETIME") < pl.col("DEAL_SQL_DATETIME")
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+
+            "won_before_opp": df.filter(
+                pl.col("DEAL_CLOSED_WON_DATE") < pl.col("DEAL_OPPORTUNITY_DATETIME")
+            ).select(pl.col("DEAL_ID").n_unique()).item(),
+        }
+
+    def check_closed_consistency(df: pl.DataFrame):
+        return {
+            "conflicting_deals": df.filter(
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
+                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
+            ).select(pl.col("DEAL_ID").n_unique()).item()
+        }
+
+    def check_inactive_deals(df: pl.DataFrame):
+        return {
+            "inactive_deals": df.filter(
+                pl.col("DEAL_MQL_DATETIME").is_null() &
+                pl.col("DEAL_SQL_DATETIME").is_null() &
+                pl.col("DEAL_OPPORTUNITY_DATETIME").is_null() &
+                pl.col("DEAL_CLOSED_WON_DATE").is_null() &
+                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+            )
+        }
+
+    def check_final_state_consistency(df: pl.DataFrame):
+        both_closed = df.filter(
+            pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
+        ).select(pl.col("DEAL_ID").n_unique()).item()
+
+        closed_date = pl.coalesce([
+            pl.col("DEAL_CLOSED_WON_DATE"),
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+        ])
+
+        progressed_after_closed = df.filter(
+            closed_date.is_not_null() & (
+                (pl.col("DEAL_MQL_DATETIME") > closed_date) |
+                (pl.col("DEAL_SQL_DATETIME") > closed_date) |
+                (pl.col("DEAL_OPPORTUNITY_DATETIME") > closed_date)
+            )
+        ).select(pl.col("DEAL_ID").n_unique()).item()
+
+        no_final_state = df.filter(
+            pl.col("DEAL_CLOSED_WON_DATE").is_null() &
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+        ).select(pl.col("DEAL_ID").n_unique()).item()
+
+        return {
+            "both_won_and_lost": both_closed,
+            "progressed_after_closed": progressed_after_closed,
+            "no_final_state": no_final_state
+        }
+
+    def get_leads_wo_final_state(df: pl.DataFrame):
+
+        return df.filter(
+            pl.col("DEAL_CLOSED_WON_DATE").is_null() &
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+        )
+
+    return (
+        check_closed_consistency,
+        check_final_state_consistency,
+        check_inactive_deals,
+        check_stage_progression,
+        check_temporal_order,
+        get_leads_wo_final_state,
+    )
 
 
 if __name__ == "__main__":
