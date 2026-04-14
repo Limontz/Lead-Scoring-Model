@@ -38,8 +38,9 @@ def _():
     import marimo as mo
     import polars as pl
     import plotly.graph_objects as go
+    from datetime import date
 
-    return go, mo, pl
+    return date, go, mo, pl
 
 
 @app.cell
@@ -97,6 +98,12 @@ def _(lead_df, pl):
 @app.cell
 def _(lead_df, pl):
     lead_df.filter(pl.col("COMPANY_FUNDING_YEAR").is_null())
+    return
+
+
+@app.cell
+def _(date, lead_df, pl):
+    lead_df.filter(pl.col("DEAL_CREATEDATE") > date(2026, 4, 8))
     return
 
 
