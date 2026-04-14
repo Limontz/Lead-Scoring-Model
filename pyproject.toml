@@ -8,9 +8,17 @@ dependencies = [
     "ipykernel>=7.2.0",
     "marimo>=0.23.1",
     "numpy>=2.4.4",
+    "pandera>=0.31.0",
     "plotly>=6.7.0",
     "polars>=1.39.3",
 ]
+
+[tool.setuptools]
+packages = ["lead_scoring"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
