@@ -54,11 +54,11 @@ def _():
         "sql_to_opp_days",
         "opp_to_won_days",
         "opp_to_lost_days",
-        "created_to_mql_days",
-        "created_to_sql_days",
-        "created_to_opp_days",
-        "created_to_won_days",
-        "created_to_lost_days",
+        "creation_to_mql_days",
+        "creation_to_sql_days",
+        "creation_to_opp_days",
+        "creation_to_won_days",
+        "creation_to_lost_days",
     ]
     return FUNNEL_STAGE_DATE_COLS, MONTHLY_DURATION_COLS
 
@@ -197,19 +197,19 @@ def _(FUNNEL_STAGE_DATE_COLS, pl):
                 .alias("opp_to_lost_days"),
                 (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_mql_days"),
+                .alias("creation_to_mql_days"),
                 (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_sql_days"),
+                .alias("creation_to_sql_days"),
                 (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_opp_days"),
+                .alias("creation_to_opp_days"),
                 (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_won_days"),
+                .alias("creation_to_won_days"),
                 (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_lost_days"),
+                .alias("creation_to_lost_days"),
             ]
         )
 
@@ -396,9 +396,9 @@ def _(
                     pl.col("is_opportunity").sum().alias("opportunity"),
                     pl.col("is_closed_won").sum().alias("closed_won"),
                     pl.col("is_closed_lost").sum().alias("closed_lost"),
-                    pl.col("created_to_won_days")
+                    pl.col("creation_to_won_days")
                     .median()
-                    .alias("median_created_to_won_days"),
+                    .alias("median_creation_to_won_days"),
                     pl.col("DEAL_AMOUNT").mean().alias("avg_deal_amount"),
                 ]
             )

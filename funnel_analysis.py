@@ -6,9 +6,12 @@ import pandera as pa
 from pandera.typing.polars import DataFrame
 
 from lead_scoring.data.io import read_lead_data
-from lead_scoring.data.manipulations import prepare_data_for_analysis
+from lead_scoring.data.manipulations import (
+    prepare_data_for_analysis,
+    cast_datetime_columns,
+)
 from lead_scoring.data.schema import RawDealsSchemaWithDatetime
-from lead_scoring.data.validation import build_validation_report, cast_datetime_columns
+from lead_scoring.data.validation import build_validation_report
 
 
 @pa.check_types
