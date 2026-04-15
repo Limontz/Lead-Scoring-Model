@@ -139,19 +139,21 @@ def _(pl):
     def read_lead_data() -> pl.DataFrame:
         df = pl.read_csv("data/lead_data.csv")
 
-        datetime_cols =[
+        datetime_cols = [
             "DEAL_CREATEDATE",
             "DEAL_MQL_DATETIME",
             "DEAL_SQL_DATETIME",
             "DEAL_OPPORTUNITY_DATETIME",
             "DEAL_CLOSED_WON_DATE",
-            "DEAL_DATETIME_ENTERED_CLOSEDLOST"
+            "DEAL_DATETIME_ENTERED_CLOSEDLOST",
         ]
 
-        converted_df = df.with_columns([
-            pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
-            for date_col in datetime_cols
-        ])
+        converted_df = df.with_columns(
+            [
+                pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
+                for date_col in datetime_cols
+            ]
+        )
 
         return converted_df
 
@@ -164,7 +166,7 @@ def _(FUNNEL_STAGE_DATE_COLS, pl):
         df: pl.DataFrame,
         stage_date_cols: dict[str, str] = FUNNEL_STAGE_DATE_COLS,
     ) -> pl.DataFrame:
-    
+
         exprs = []
         for stage_name, date_col in stage_date_cols.items():
             exprs.append(
@@ -173,19 +175,43 @@ def _(FUNNEL_STAGE_DATE_COLS, pl):
         return df.with_columns(exprs)
 
     def compute_stage_durations(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("creation_to_mql_days"),
-            (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_MQL_DATETIME")).dt.total_days().alias("mql_to_sql_days"),
-            (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_SQL_DATETIME")).dt.total_days().alias("sql_to_opp_days"),
-            (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_OPPORTUNITY_DATETIME")).dt.total_days().alias("opp_to_won_days"),
-            (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_OPPORTUNITY_DATETIME")).dt.total_days().alias("opp_to_lost_days"),
-
-            (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_mql_days"),
-            (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_sql_days"),
-            (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_opp_days"),
-            (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_won_days"),
-            (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_lost_days"),
-        ])
+        return df.with_columns(
+            [
+                (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("creation_to_mql_days"),
+                (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_MQL_DATETIME"))
+                .dt.total_days()
+                .alias("mql_to_sql_days"),
+                (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_SQL_DATETIME"))
+                .dt.total_days()
+                .alias("sql_to_opp_days"),
+                (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_OPPORTUNITY_DATETIME"))
+                .dt.total_days()
+                .alias("opp_to_won_days"),
+                (
+                    pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+                    - pl.col("DEAL_OPPORTUNITY_DATETIME")
+                )
+                .dt.total_days()
+                .alias("opp_to_lost_days"),
+                (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_mql_days"),
+                (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_sql_days"),
+                (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_opp_days"),
+                (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_won_days"),
+                (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_lost_days"),
+            ]
+        )
 
     return add_month_columns, compute_stage_durations
 
@@ -193,22 +219,29 @@ def _(FUNNEL_STAGE_DATE_COLS, pl):
 @app.cell
 def _(FUNNEL_STAGE_DATE_COLS, MONTHLY_DURATION_COLS, pl):
     def add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            pl.col("DEAL_MQL_DATETIME").is_not_null().alias("is_mql"),
-            pl.col("DEAL_SQL_DATETIME").is_not_null().alias("is_sql"),
-            pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null().alias("is_opportunity"),
-            pl.col("DEAL_CLOSED_WON_DATE").is_not_null().alias("is_closed_won"),
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null().alias("is_closed_lost"),
-        ])
-
+        return df.with_columns(
+            [
+                pl.col("DEAL_MQL_DATETIME").is_not_null().alias("is_mql"),
+                pl.col("DEAL_SQL_DATETIME").is_not_null().alias("is_sql"),
+                pl.col("DEAL_OPPORTUNITY_DATETIME")
+                .is_not_null()
+                .alias("is_opportunity"),
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null().alias("is_closed_won"),
+                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+                .is_not_null()
+                .alias("is_closed_lost"),
+            ]
+        )
 
     def add_conversion_flags(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            pl.col("is_mql").alias("conv_created_to_mql"),
-            pl.col("is_sql").alias("conv_mql_to_sql"),
-            pl.col("is_opportunity").alias("conv_sql_to_opp"),
-            pl.col("is_closed_won").alias("conv_opp_to_won"),
-        ])
+        return df.with_columns(
+            [
+                pl.col("is_mql").alias("conv_created_to_mql"),
+                pl.col("is_sql").alias("conv_mql_to_sql"),
+                pl.col("is_opportunity").alias("conv_sql_to_opp"),
+                pl.col("is_closed_won").alias("conv_opp_to_won"),
+            ]
+        )
 
     def compute_monthly_stage_entries(
         df: pl.DataFrame,
@@ -238,22 +271,32 @@ def _(FUNNEL_STAGE_DATE_COLS, MONTHLY_DURATION_COLS, pl):
         return (
             df.filter(pl.col("created_month").is_not_null())
             .group_by("created_month")
-            .agg([
-                pl.col("DEAL_ID").n_unique().alias("created"),
-                pl.col("is_mql").sum().alias("mql"),
-                pl.col("is_sql").sum().alias("sql"),
-                pl.col("is_opportunity").sum().alias("opportunity"),
-                pl.col("is_closed_won").sum().alias("closed_won"),
-                pl.col("is_closed_lost").sum().alias("closed_lost"),
-            ])
-            .with_columns([
-                (pl.col("mql") / pl.col("created")).alias("cr_created_to_mql"),
-                (pl.col("sql") / pl.col("mql")).alias("cr_mql_to_sql"),
-                (pl.col("opportunity") / pl.col("sql")).alias("cr_sql_to_opp"),
-                (pl.col("closed_won") / pl.col("opportunity")).alias("cr_opp_to_won"),
-                (pl.col("closed_won") / pl.col("created")).alias("cr_created_to_won"),
-                (pl.col("closed_lost") / pl.col("created")).alias("cr_created_to_lost"),
-            ])
+            .agg(
+                [
+                    pl.col("DEAL_ID").n_unique().alias("created"),
+                    pl.col("is_mql").sum().alias("mql"),
+                    pl.col("is_sql").sum().alias("sql"),
+                    pl.col("is_opportunity").sum().alias("opportunity"),
+                    pl.col("is_closed_won").sum().alias("closed_won"),
+                    pl.col("is_closed_lost").sum().alias("closed_lost"),
+                ]
+            )
+            .with_columns(
+                [
+                    (pl.col("mql") / pl.col("created")).alias("cr_created_to_mql"),
+                    (pl.col("sql") / pl.col("mql")).alias("cr_mql_to_sql"),
+                    (pl.col("opportunity") / pl.col("sql")).alias("cr_sql_to_opp"),
+                    (pl.col("closed_won") / pl.col("opportunity")).alias(
+                        "cr_opp_to_won"
+                    ),
+                    (pl.col("closed_won") / pl.col("created")).alias(
+                        "cr_created_to_won"
+                    ),
+                    (pl.col("closed_lost") / pl.col("created")).alias(
+                        "cr_created_to_lost"
+                    ),
+                ]
+            )
             .sort("created_month")
         )
 
@@ -268,16 +311,13 @@ def _(FUNNEL_STAGE_DATE_COLS, MONTHLY_DURATION_COLS, pl):
 
         agg_exprs = []
         for col_name in duration_cols:
-            agg_exprs.extend([
-                pl.col(col_name).mean().alias(f"{col_name}_mean"),
-            ])
+            agg_exprs.extend(
+                [
+                    pl.col(col_name).mean().alias(f"{col_name}_mean"),
+                ]
+            )
 
-        return (
-            df
-            .group_by("created_month")
-            .agg(agg_exprs)
-            .sort("created_month")
-        )
+        return df.group_by("created_month").agg(agg_exprs).sort("created_month")
 
     def compute_monthly_segment_trend(
         df: pl.DataFrame,
@@ -286,18 +326,25 @@ def _(FUNNEL_STAGE_DATE_COLS, MONTHLY_DURATION_COLS, pl):
     ) -> pl.DataFrame:
 
         return (
-            df
-            .group_by(["created_month", segment_col])
-            .agg([
-                pl.col("DEAL_ID").n_unique().alias("created"),
-                pl.col("is_closed_won").sum().alias("closed_won"),
-                pl.col("is_closed_lost").sum().alias("closed_lost"),
-            ])
+            df.group_by(["created_month", segment_col])
+            .agg(
+                [
+                    pl.col("DEAL_ID").n_unique().alias("created"),
+                    pl.col("is_closed_won").sum().alias("closed_won"),
+                    pl.col("is_closed_lost").sum().alias("closed_lost"),
+                ]
+            )
             .filter(pl.col("created") >= min_count_per_month)
-            .with_columns([
-                (pl.col("closed_won") / pl.col("created")).alias("cr_created_to_won"),
-                (pl.col("closed_lost") / pl.col("created")).alias("cr_created_to_lost"),
-            ])
+            .with_columns(
+                [
+                    (pl.col("closed_won") / pl.col("created")).alias(
+                        "cr_created_to_won"
+                    ),
+                    (pl.col("closed_lost") / pl.col("created")).alias(
+                        "cr_created_to_lost"
+                    ),
+                ]
+            )
             .sort(["created_month", segment_col])
         )
 
@@ -327,15 +374,12 @@ def _(
     def prepare_funnel_analysis_df(df: pl.DataFrame) -> pl.DataFrame:
         return (
             df.pipe(add_stage_flags)
-              .pipe(add_conversion_flags)
-              .pipe(compute_stage_durations)
+            .pipe(add_conversion_flags)
+            .pipe(compute_stage_durations)
         )
 
     def prepare_temporal_analysis_df(df: pl.DataFrame) -> pl.DataFrame:
-        return (
-            df.pipe(prepare_funnel_analysis_df)
-              .pipe(add_month_columns)
-        )
+        return df.pipe(prepare_funnel_analysis_df).pipe(add_month_columns)
 
     def compute_segment_funnel_summary(
         df: pl.DataFrame,
@@ -343,27 +387,38 @@ def _(
         min_count: int = 0,
     ) -> pl.DataFrame:
         return (
-            df
-            .group_by(segment_col)
-            .agg([
-                pl.col("DEAL_ID").n_unique().alias("created"),
-                pl.col("is_mql").sum().alias("mql"),
-                pl.col("is_sql").sum().alias("sql"),
-                pl.col("is_opportunity").sum().alias("opportunity"),
-                pl.col("is_closed_won").sum().alias("closed_won"),
-                pl.col("is_closed_lost").sum().alias("closed_lost"),
-                pl.col("created_to_won_days").median().alias("median_created_to_won_days"),
-                pl.col("DEAL_AMOUNT").mean().alias("avg_deal_amount"),
-            ])
+            df.group_by(segment_col)
+            .agg(
+                [
+                    pl.col("DEAL_ID").n_unique().alias("created"),
+                    pl.col("is_mql").sum().alias("mql"),
+                    pl.col("is_sql").sum().alias("sql"),
+                    pl.col("is_opportunity").sum().alias("opportunity"),
+                    pl.col("is_closed_won").sum().alias("closed_won"),
+                    pl.col("is_closed_lost").sum().alias("closed_lost"),
+                    pl.col("created_to_won_days")
+                    .median()
+                    .alias("median_created_to_won_days"),
+                    pl.col("DEAL_AMOUNT").mean().alias("avg_deal_amount"),
+                ]
+            )
             .filter(pl.col("created") >= min_count)
-            .with_columns([
-                (pl.col("mql") / pl.col("created")).alias("cr_created_to_mql"),
-                (pl.col("sql") / pl.col("mql")).alias("cr_mql_to_sql"),
-                (pl.col("opportunity") / pl.col("sql")).alias("cr_sql_to_opp"),
-                (pl.col("closed_won") / pl.col("opportunity")).alias("cr_opp_to_won"),
-                (pl.col("closed_won") / pl.col("created")).alias("cr_created_to_won"),
-                (pl.col("closed_lost") / pl.col("created")).alias("cr_created_to_lost"),
-            ])
+            .with_columns(
+                [
+                    (pl.col("mql") / pl.col("created")).alias("cr_created_to_mql"),
+                    (pl.col("sql") / pl.col("mql")).alias("cr_mql_to_sql"),
+                    (pl.col("opportunity") / pl.col("sql")).alias("cr_sql_to_opp"),
+                    (pl.col("closed_won") / pl.col("opportunity")).alias(
+                        "cr_opp_to_won"
+                    ),
+                    (pl.col("closed_won") / pl.col("created")).alias(
+                        "cr_created_to_won"
+                    ),
+                    (pl.col("closed_lost") / pl.col("created")).alias(
+                        "cr_created_to_lost"
+                    ),
+                ]
+            )
             .sort("created", descending=True)
         )
 
@@ -427,15 +482,11 @@ def _(go, pl, px):
             "cr_created_to_won",
         ],
     ) -> go.Figure:
-        plot_df = (
-            monthly_cohort_df
-            .select(["created_month"] + conversion_cols)
-            .unpivot(
-                on=conversion_cols,
-                index="created_month",
-                variable_name="metric",
-                value_name="conversion_rate",
-            )
+        plot_df = monthly_cohort_df.select(["created_month"] + conversion_cols).unpivot(
+            on=conversion_cols,
+            index="created_month",
+            variable_name="metric",
+            value_name="conversion_rate",
         )
 
         fig = px.line(
@@ -460,15 +511,11 @@ def _(go, pl, px):
     ) -> go.Figure:
         cols = [c for c in monthly_speed_df.columns if c.endswith(metric_suffix)]
 
-        plot_df = (
-            monthly_speed_df
-            .select(["created_month"] + cols)
-            .unpivot(
-                on=cols,
-                index="created_month",
-                variable_name="metric",
-                value_name="days",
-            )
+        plot_df = monthly_speed_df.select(["created_month"] + cols).unpivot(
+            on=cols,
+            index="created_month",
+            variable_name="metric",
+            value_name="days",
         )
 
         fig = px.line(
@@ -495,7 +542,6 @@ def _(go, pl, px):
 
         if top_n is not None:
             plot_df = plot_df.head(top_n)
-
 
         fig = px.bar(
             plot_df,

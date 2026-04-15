@@ -105,7 +105,7 @@ def _(
         "opp_to_won",
         NUMERIC_FEATURES + DURATION_FEATURES,
         CATEGORICAL_FEATURES,
-        numeric_plot_kind = "box",
+        numeric_plot_kind="box",
     )
     return
 
@@ -123,19 +123,21 @@ def _(pl):
     def read_lead_data() -> pl.DataFrame:
         df = pl.read_csv("data/lead_data.csv")
 
-        datetime_cols =[
+        datetime_cols = [
             "DEAL_CREATEDATE",
             "DEAL_MQL_DATETIME",
             "DEAL_SQL_DATETIME",
             "DEAL_OPPORTUNITY_DATETIME",
             "DEAL_CLOSED_WON_DATE",
-            "DEAL_DATETIME_ENTERED_CLOSEDLOST"
+            "DEAL_DATETIME_ENTERED_CLOSEDLOST",
         ]
 
-        converted_df = df.with_columns([
-            pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
-            for date_col in datetime_cols
-        ])
+        converted_df = df.with_columns(
+            [
+                pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
+                for date_col in datetime_cols
+            ]
+        )
 
         return converted_df
 
@@ -145,31 +147,59 @@ def _(pl):
 @app.cell
 def _(pl):
     def compute_stage_durations(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("creation_to_mql_days"),
-            (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_MQL_DATETIME")).dt.total_days().alias("mql_to_sql_days"),
-            (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_SQL_DATETIME")).dt.total_days().alias("sql_to_opp_days"),
-            (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_OPPORTUNITY_DATETIME")).dt.total_days().alias("opp_to_won_days"),
-            (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_OPPORTUNITY_DATETIME")).dt.total_days().alias("opp_to_lost_days"),
-
-            (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_mql_days"),
-            (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_sql_days"),
-            (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_opp_days"),
-            (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_won_days"),
-            (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE")).dt.total_days().alias("created_to_lost_days"),
-        ])
+        return df.with_columns(
+            [
+                (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("creation_to_mql_days"),
+                (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_MQL_DATETIME"))
+                .dt.total_days()
+                .alias("mql_to_sql_days"),
+                (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_SQL_DATETIME"))
+                .dt.total_days()
+                .alias("sql_to_opp_days"),
+                (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_OPPORTUNITY_DATETIME"))
+                .dt.total_days()
+                .alias("opp_to_won_days"),
+                (
+                    pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+                    - pl.col("DEAL_OPPORTUNITY_DATETIME")
+                )
+                .dt.total_days()
+                .alias("opp_to_lost_days"),
+                (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_mql_days"),
+                (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_sql_days"),
+                (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_opp_days"),
+                (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_won_days"),
+                (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE"))
+                .dt.total_days()
+                .alias("created_to_lost_days"),
+            ]
+        )
 
     def compute_funnel_volumes(df: pl.DataFrame) -> dict[str, float]:
         return {
             "created": df.select(pl.col("DEAL_ID").n_unique()).item(),
             "mql": df.filter(pl.col("DEAL_MQL_DATETIME").is_not_null())
-                     .select(pl.col("DEAL_ID").n_unique()).item(),
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "sql": df.filter(pl.col("DEAL_SQL_DATETIME").is_not_null())
-                     .select(pl.col("DEAL_ID").n_unique()).item(),
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "opportunity": df.filter(pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null())
-                             .select(pl.col("DEAL_ID").n_unique()).item(),
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "closed_won": df.filter(pl.col("DEAL_CLOSED_WON_DATE").is_not_null())
-                            .select(pl.col("DEAL_ID").n_unique()).item(),
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
         }
 
     def compute_funnel_metrics(df: pl.DataFrame) -> dict[str, dict[str, float]]:
@@ -197,10 +227,14 @@ def _(pl):
     def get_sql_to_demo_score_conversion_rate(df: pl.DataFrame) -> float:
         volumes = compute_funnel_volumes(df)
 
-        lead_with_demo_score = df.filter(
-            pl.col("DEAL_DEMO_SCORE").is_not_null(),
-            pl.col("DEAL_SQL_DATETIME").is_not_null()
-        ).select(pl.col("DEAL_ID").n_unique()).item()
+        lead_with_demo_score = (
+            df.filter(
+                pl.col("DEAL_DEMO_SCORE").is_not_null(),
+                pl.col("DEAL_SQL_DATETIME").is_not_null(),
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item()
+        )
         rate = lead_with_demo_score / volumes["created"] * 100
 
         return round(rate, 2)
@@ -215,14 +249,18 @@ def _(pl):
 @app.cell
 def _(go, pl):
     def plot_stage_durations(stage_duration_df: pl.DataFrame) -> None:
-        duration_cols = [col for col in stage_duration_df.columns if col.endswith("_days")]
+        duration_cols = [
+            col for col in stage_duration_df.columns if col.endswith("_days")
+        ]
 
         for col_name in duration_cols:
             series = stage_duration_df[col_name].drop_nulls()
             col_min = series.min()
             col_max = series.max()
             col_mean = series.mean()
-            print(f"{col_name} → min: {col_min} days, max: {col_max} days, mean: {round(col_mean, 0)} days")
+            print(
+                f"{col_name} → min: {col_min} days, max: {col_max} days, mean: {round(col_mean, 0)} days"
+            )
 
             fig = go.Figure(
                 go.Histogram(
@@ -245,8 +283,6 @@ def _(go, pl):
 
 @app.cell
 def _(compute_stage_durations, go, pl, px):
-
-
 
     STEPS = {
         "created_to_mql": {
@@ -301,33 +337,37 @@ def _(compute_stage_durations, go, pl, px):
         "opp_to_lost_days",
     ]
 
-
     def add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            pl.col("DEAL_MQL_DATETIME").is_not_null().alias("is_mql"),
-            pl.col("DEAL_SQL_DATETIME").is_not_null().alias("is_sql"),
-            pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null().alias("is_opportunity"),
-            pl.col("DEAL_CLOSED_WON_DATE").is_not_null().alias("is_closed_won"),
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null().alias("is_closed_lost"),
-        ])
-
+        return df.with_columns(
+            [
+                pl.col("DEAL_MQL_DATETIME").is_not_null().alias("is_mql"),
+                pl.col("DEAL_SQL_DATETIME").is_not_null().alias("is_sql"),
+                pl.col("DEAL_OPPORTUNITY_DATETIME")
+                .is_not_null()
+                .alias("is_opportunity"),
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null().alias("is_closed_won"),
+                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+                .is_not_null()
+                .alias("is_closed_lost"),
+            ]
+        )
 
     def add_conversion_flags(df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns([
-            pl.col("is_mql").alias("conv_created_to_mql"),
-            pl.col("is_sql").alias("conv_mql_to_sql"),
-            pl.col("is_opportunity").alias("conv_sql_to_opp"),
-            pl.col("is_closed_won").alias("conv_opp_to_won"),
-        ])
-
+        return df.with_columns(
+            [
+                pl.col("is_mql").alias("conv_created_to_mql"),
+                pl.col("is_sql").alias("conv_mql_to_sql"),
+                pl.col("is_opportunity").alias("conv_sql_to_opp"),
+                pl.col("is_closed_won").alias("conv_opp_to_won"),
+            ]
+        )
 
     def prepare_funnel_analysis_df(df: pl.DataFrame) -> pl.DataFrame:
         return (
             df.pipe(add_stage_flags)
-              .pipe(add_conversion_flags)
-              .pipe(compute_stage_durations)
+            .pipe(add_conversion_flags)
+            .pipe(compute_stage_durations)
         )
-
 
     def get_step_dataset(df: pl.DataFrame, step_name: str) -> pl.DataFrame:
         config = STEPS[step_name]
@@ -335,21 +375,24 @@ def _(compute_stage_durations, go, pl, px):
             return df
         return df.filter(config["current_filter"])
 
-    def summarize_numeric_by_target(df: pl.DataFrame, feature: str, target_col: str) -> pl.DataFrame:
+    def summarize_numeric_by_target(
+        df: pl.DataFrame, feature: str, target_col: str
+    ) -> pl.DataFrame:
         return (
             df.filter(pl.col(feature).is_not_null())
             .group_by(target_col)
-            .agg([
-                pl.len().alias("n"),
-                pl.col(feature).mean().alias("mean"),
-                pl.col(feature).median().alias("median"),
-                pl.col(feature).std().alias("std"),
-                pl.col(feature).min().alias("min"),
-                pl.col(feature).max().alias("max"),
-            ])
+            .agg(
+                [
+                    pl.len().alias("n"),
+                    pl.col(feature).mean().alias("mean"),
+                    pl.col(feature).median().alias("median"),
+                    pl.col(feature).std().alias("std"),
+                    pl.col(feature).min().alias("min"),
+                    pl.col(feature).max().alias("max"),
+                ]
+            )
             .sort(target_col)
         )
-
 
     def summarize_categorical_conversion(
         df: pl.DataFrame,
@@ -360,13 +403,14 @@ def _(compute_stage_durations, go, pl, px):
         return (
             df.filter(pl.col(feature).is_not_null())
             .group_by(feature)
-            .agg([
-                pl.len().alias("n"),
-                pl.col(target_col).mean().alias("conversion_rate"),
-            ])
+            .agg(
+                [
+                    pl.len().alias("n"),
+                    pl.col(target_col).mean().alias("conversion_rate"),
+                ]
+            )
             .sort("conversion_rate", descending=True)
         )
-
 
     def plot_numeric_distribution(
         df: pl.DataFrame,
@@ -376,10 +420,7 @@ def _(compute_stage_durations, go, pl, px):
         plot_kind: str = "box",  # "box", "violin", "hist"
         clip_outliers: bool = True,
     ) -> go.Figure:
-        pdf = (
-            df.select([feature, target_col])
-            .filter(pl.col(feature).is_not_null())
-        )
+        pdf = df.select([feature, target_col]).filter(pl.col(feature).is_not_null())
 
         if plot_kind == "box":
             fig = px.box(
@@ -416,7 +457,6 @@ def _(compute_stage_durations, go, pl, px):
         fig.update_layout(template="plotly_white")
         fig.show()
         return fig
-
 
     def plot_categorical_conversion(
         df: pl.DataFrame,
@@ -484,7 +524,6 @@ def _(compute_stage_durations, go, pl, px):
 
         fig.show()
 
-
     def run_step_analysis(
         df: pl.DataFrame,
         step_name: str,
@@ -515,7 +554,7 @@ def _(compute_stage_durations, go, pl, px):
             results["numeric_summaries"][feature] = summary
 
             print(f"\n[NUMERIC] {feature}")
-            #print(summary)
+            # print(summary)
 
             plot_numeric_distribution(
                 df=step_df,
@@ -535,7 +574,7 @@ def _(compute_stage_durations, go, pl, px):
             results["categorical_summaries"][feature] = summary
 
             print(f"\n[CATEGORICAL] {feature}")
-            #print(summary.head(15))
+            # print(summary.head(15))
 
             plot_categorical_conversion(
                 df=step_df,
@@ -551,7 +590,6 @@ def _(compute_stage_durations, go, pl, px):
         )
 
         return results
-
 
     def run_full_funnel_feature_analysis(
         df: pl.DataFrame,

@@ -65,21 +65,22 @@ def _(lead_df):
 
 @app.cell
 def _(lead_df, pl):
-    lead_df.filter(pl.col("DEAL_CCNL_MACRO").is_null()) # sembra ok
+    lead_df.filter(pl.col("DEAL_CCNL_MACRO").is_null())  # sembra ok
     return
 
 
 @app.cell
 def _(lead_df, pl):
-    lead_df.filter(pl.col("DEAL_SOURCE_DETAIL").is_null()) # sembra ok
+    lead_df.filter(pl.col("DEAL_SOURCE_DETAIL").is_null())  # sembra ok
     return
 
 
 @app.cell
 def _(lead_df, pl):
-    lead_df.filter(pl.col("DEAL_DEMO_SCORE").is_null(),
-                   pl.col("DEAL_NUMBER_TIMES_CONTACTED").is_null()
-                  )
+    lead_df.filter(
+        pl.col("DEAL_DEMO_SCORE").is_null(),
+        pl.col("DEAL_NUMBER_TIMES_CONTACTED").is_null(),
+    )
     return
 
 
@@ -171,23 +172,23 @@ def _(pl):
     def read_lead_data():
         df = pl.read_csv("data/lead_data.csv")
 
-        datetime_cols =[
+        datetime_cols = [
             "DEAL_CREATEDATE",
             "DEAL_MQL_DATETIME",
             "DEAL_SQL_DATETIME",
             "DEAL_OPPORTUNITY_DATETIME",
             "DEAL_CLOSED_WON_DATE",
-            "DEAL_DATETIME_ENTERED_CLOSEDLOST"
+            "DEAL_DATETIME_ENTERED_CLOSEDLOST",
         ]
 
-        converted_df = df.with_columns([
-            pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
-            for date_col in datetime_cols
-        ])
+        converted_df = df.with_columns(
+            [
+                pl.col(date_col).str.to_datetime("%Y-%m-%d %H:%M:%S")
+                for date_col in datetime_cols
+            ]
+        )
 
         return converted_df
-
-
 
     return (read_lead_data,)
 
@@ -196,17 +197,26 @@ def _(pl):
 def _(go, pl):
     def plot_distributions(df: pl.DataFrame, max_categories: int = 9999999):
         non_dt_cols = [
-            col for col in df.columns
+            col
+            for col in df.columns
             if not isinstance(df[col].dtype, (pl.Datetime, pl.Date, pl.Duration))
         ]
         for col_name in non_dt_cols:
             series = df[col_name]
             dtype = df[col_name].dtype
 
-            if dtype in (pl.Int8, pl.Int16, pl.Int32, pl.Int64,
-                         pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
-                         pl.Float32, pl.Float64):
-
+            if dtype in (
+                pl.Int8,
+                pl.Int16,
+                pl.Int32,
+                pl.Int64,
+                pl.UInt8,
+                pl.UInt16,
+                pl.UInt32,
+                pl.UInt64,
+                pl.Float32,
+                pl.Float64,
+            ):
                 col_min = series.drop_nulls().min()
                 col_max = series.drop_nulls().max()
                 print(f"{col_name} → min: {col_min}, max: {col_max}")
@@ -222,8 +232,7 @@ def _(go, pl):
             else:
                 series_filled = series.fill_null("NULL")
                 counts = (
-                    series_filled
-                    .value_counts()
+                    series_filled.value_counts()
                     .sort("count", descending=True)
                     .head(max_categories)
                 )
@@ -251,94 +260,117 @@ def _(pl):
     def check_stage_progression(df: pl.DataFrame):
         return {
             "sql_without_mql": df.filter(
-                pl.col("DEAL_SQL_DATETIME").is_not_null() &
-                pl.col("DEAL_MQL_DATETIME").is_null()
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
-
+                pl.col("DEAL_SQL_DATETIME").is_not_null()
+                & pl.col("DEAL_MQL_DATETIME").is_null()
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "opportunity_without_sql": df.filter(
-                pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null() &
-                pl.col("DEAL_SQL_DATETIME").is_null()
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
-
+                pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null()
+                & pl.col("DEAL_SQL_DATETIME").is_null()
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "won_without_opportunity": df.filter(
-                pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
-                pl.col("DEAL_OPPORTUNITY_DATETIME").is_null()
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null()
+                & pl.col("DEAL_OPPORTUNITY_DATETIME").is_null()
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
         }
 
     def check_temporal_order(df: pl.DataFrame):
         return {
             "mql_before_created": df.filter(
                 pl.col("DEAL_MQL_DATETIME") < pl.col("DEAL_CREATEDATE")
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
-
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "sql_before_mql": df.filter(
                 pl.col("DEAL_SQL_DATETIME") < pl.col("DEAL_MQL_DATETIME")
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
-
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "opp_before_sql": df.filter(
                 pl.col("DEAL_OPPORTUNITY_DATETIME") < pl.col("DEAL_SQL_DATETIME")
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
-
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
             "won_before_opp": df.filter(
                 pl.col("DEAL_CLOSED_WON_DATE") < pl.col("DEAL_OPPORTUNITY_DATETIME")
-            ).select(pl.col("DEAL_ID").n_unique()).item(),
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item(),
         }
 
     def check_closed_consistency(df: pl.DataFrame):
         return {
             "conflicting_deals": df.filter(
-                pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
-                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
-            ).select(pl.col("DEAL_ID").n_unique()).item()
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null()
+                & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item()
         }
 
     def check_inactive_deals(df: pl.DataFrame):
         return {
             "inactive_deals": df.filter(
-                pl.col("DEAL_MQL_DATETIME").is_null() &
-                pl.col("DEAL_SQL_DATETIME").is_null() &
-                pl.col("DEAL_OPPORTUNITY_DATETIME").is_null() &
-                pl.col("DEAL_CLOSED_WON_DATE").is_null() &
-                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+                pl.col("DEAL_MQL_DATETIME").is_null()
+                & pl.col("DEAL_SQL_DATETIME").is_null()
+                & pl.col("DEAL_OPPORTUNITY_DATETIME").is_null()
+                & pl.col("DEAL_CLOSED_WON_DATE").is_null()
+                & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
             )
         }
 
     def check_final_state_consistency(df: pl.DataFrame):
-        both_closed = df.filter(
-            pl.col("DEAL_CLOSED_WON_DATE").is_not_null() &
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
-        ).select(pl.col("DEAL_ID").n_unique()).item()
-
-        closed_date = pl.coalesce([
-            pl.col("DEAL_CLOSED_WON_DATE"),
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
-        ])
-
-        progressed_after_closed = df.filter(
-            closed_date.is_not_null() & (
-                (pl.col("DEAL_MQL_DATETIME") > closed_date) |
-                (pl.col("DEAL_SQL_DATETIME") > closed_date) |
-                (pl.col("DEAL_OPPORTUNITY_DATETIME") > closed_date)
+        both_closed = (
+            df.filter(
+                pl.col("DEAL_CLOSED_WON_DATE").is_not_null()
+                & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
             )
-        ).select(pl.col("DEAL_ID").n_unique()).item()
+            .select(pl.col("DEAL_ID").n_unique())
+            .item()
+        )
 
-        no_final_state = df.filter(
-            pl.col("DEAL_CLOSED_WON_DATE").is_null() &
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
-        ).select(pl.col("DEAL_ID").n_unique()).item()
+        closed_date = pl.coalesce(
+            [pl.col("DEAL_CLOSED_WON_DATE"), pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")]
+        )
+
+        progressed_after_closed = (
+            df.filter(
+                closed_date.is_not_null()
+                & (
+                    (pl.col("DEAL_MQL_DATETIME") > closed_date)
+                    | (pl.col("DEAL_SQL_DATETIME") > closed_date)
+                    | (pl.col("DEAL_OPPORTUNITY_DATETIME") > closed_date)
+                )
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item()
+        )
+
+        no_final_state = (
+            df.filter(
+                pl.col("DEAL_CLOSED_WON_DATE").is_null()
+                & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+            )
+            .select(pl.col("DEAL_ID").n_unique())
+            .item()
+        )
 
         return {
             "both_won_and_lost": both_closed,
             "progressed_after_closed": progressed_after_closed,
-            "no_final_state": no_final_state
+            "no_final_state": no_final_state,
         }
 
     def get_leads_wo_final_state(df: pl.DataFrame):
 
         return df.filter(
-            pl.col("DEAL_CLOSED_WON_DATE").is_null() &
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
+            pl.col("DEAL_CLOSED_WON_DATE").is_null()
+            & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
         )
 
     return (
