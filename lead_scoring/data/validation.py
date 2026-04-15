@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import polars as pl
 import pandera.polars as pa
+from datetime import datetime
 
 
 @dataclass
@@ -17,6 +18,10 @@ class ValidationReport:
     progressed_after_closed: int
     no_final_state: int
     inactive_deals: int
+    future_closed_won_date: int
+    future_closed_lost_date: int
+    future_terminal_date: int
+    future_created_date: int
 
     def hard_failures(self) -> dict[str, int]:
         return {
@@ -35,6 +40,10 @@ class ValidationReport:
         return {
             "no_final_state": self.no_final_state,
             "inactive_deals": self.inactive_deals,
+            "future_closed_won_date": self.future_closed_won_date,
+            "future_closed_lost_date": self.future_closed_lost_date,
+            "future_terminal_date": self.future_terminal_date,
+            "future_created_date": self.future_created_date,
         }
 
     def raise_if_invalid(self) -> None:
@@ -44,36 +53,39 @@ class ValidationReport:
 
 
 @pa.check_types
-def cast_datetime_columns(
-    df: pl.DataFrame,
-) -> pl.DataFrame:
-    datetime_columns = [
-        "DEAL_CREATEDATE",
-        "DEAL_MQL_DATETIME",
-        "DEAL_SQL_DATETIME",
-        "DEAL_OPPORTUNITY_DATETIME",
-        "DEAL_CLOSED_WON_DATE",
-        "DEAL_DATETIME_ENTERED_CLOSEDLOST",
-    ]
-    datetime_format = "%Y-%m-%d %H:%M:%S"
-    return df.with_columns(
-        [
-            pl.col(col).str.to_datetime(format=datetime_format, strict=False)
-            for col in datetime_columns
-        ]
-    )
-
-
-@pa.check_types
 def build_validation_report(
     df: pl.DataFrame,
 ) -> ValidationReport:
+    now = datetime.now()
     closed_at = pl.coalesce(
         [
             pl.col("DEAL_CLOSED_WON_DATE"),
             pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST"),
         ]
     )
+
+    future_closed_won_date = df.filter(
+        pl.col("DEAL_CLOSED_WON_DATE").is_not_null()
+        & (pl.col("DEAL_CLOSED_WON_DATE") > now)
+    ).height
+
+    future_closed_lost_date = df.filter(
+        pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
+        & (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") > now)
+    ).height
+
+    future_terminal_date = df.filter(
+        (
+            pl.col("DEAL_CLOSED_WON_DATE").is_not_null()
+            & (pl.col("DEAL_CLOSED_WON_DATE") > now)
+        )
+        | (
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null()
+            & (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") > now)
+        )
+    ).height
+
+    future_created = df.filter(pl.col("DEAL_CREATEDATE") > now).height
 
     return ValidationReport(
         row_count=df.height,
@@ -131,4 +143,8 @@ def build_validation_report(
             & pl.col("DEAL_CLOSED_WON_DATE").is_null()
             & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
         ).height,
+        future_closed_won_date=future_closed_won_date,
+        future_closed_lost_date=future_closed_lost_date,
+        future_terminal_date=future_terminal_date,
+        future_created_date=future_created,
     )

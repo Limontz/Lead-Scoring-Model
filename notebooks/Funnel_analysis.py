@@ -169,19 +169,19 @@ def _(pl):
                 .alias("opp_to_lost_days"),
                 (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_mql_days"),
+                .alias("creation_to_mql_days"),
                 (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_sql_days"),
+                .alias("creation_to_sql_days"),
                 (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_opp_days"),
+                .alias("creation_to_opp_days"),
                 (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_won_days"),
+                .alias("creation_to_won_days"),
                 (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE"))
                 .dt.total_days()
-                .alias("created_to_lost_days"),
+                .alias("creation_to_lost_days"),
             ]
         )
 
