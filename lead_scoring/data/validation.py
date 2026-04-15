@@ -2,10 +2,6 @@ from dataclasses import dataclass
 import polars as pl
 import pandera.polars as pa
 
-from lead_scoring.data.schema import RawDealsSchema
-from pandera.typing.polars import DataFrame
-
-
 @dataclass
 class ValidationReport:
     row_count: int
@@ -68,7 +64,7 @@ def cast_datetime_columns(
 
 
 @pa.check_types
-def build_typed_validation_report(
+def build_validation_report(
     df: pl.DataFrame,
 ) -> ValidationReport:
     closed_at = pl.coalesce(
@@ -135,9 +131,3 @@ def build_typed_validation_report(
             & pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_null()
         ).height,
     )
-
-def validate_typed_deals(
-    raw_df: DataFrame[RawDealsSchema],
-) -> None:
-    report = build_typed_validation_report(raw_df)
-    report.raise_if_invalid()
