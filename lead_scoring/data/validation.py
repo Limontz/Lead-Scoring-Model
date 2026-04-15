@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import polars as pl
 import pandera.polars as pa
 
+
 @dataclass
 class ValidationReport:
     row_count: int

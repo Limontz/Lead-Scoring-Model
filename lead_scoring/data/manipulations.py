@@ -21,7 +21,9 @@ def _add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
             pl.col("DEAL_SQL_DATETIME").is_not_null().alias("is_sql"),
             pl.col("DEAL_OPPORTUNITY_DATETIME").is_not_null().alias("is_opportunity"),
             pl.col("DEAL_CLOSED_WON_DATE").is_not_null().alias("is_closed_won"),
-            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST").is_not_null().alias("is_closed_lost"),
+            pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+            .is_not_null()
+            .alias("is_closed_lost"),
         ]
     )
 
@@ -36,7 +38,9 @@ def _add_final_state_columns(df: pl.DataFrame) -> pl.DataFrame:
 
     return df.with_columns(
         [
-            (pl.col("is_closed_won") | pl.col("is_closed_lost")).alias("has_final_state"),
+            (pl.col("is_closed_won") | pl.col("is_closed_lost")).alias(
+                "has_final_state"
+            ),
             (~pl.col("is_closed_won") & ~pl.col("is_closed_lost")).alias("is_open"),
             (
                 ~pl.col("is_mql")
@@ -73,39 +77,33 @@ def _add_duration_columns(df: pl.DataFrame) -> pl.DataFrame:
             (pl.col("DEAL_MQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_mql_days"),
-
             (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_MQL_DATETIME"))
             .dt.total_days()
             .alias("mql_to_sql_days"),
-
             (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_SQL_DATETIME"))
             .dt.total_days()
             .alias("sql_to_opp_days"),
-
             (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_OPPORTUNITY_DATETIME"))
             .dt.total_days()
             .alias("opp_to_won_days"),
-
-            (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_OPPORTUNITY_DATETIME"))
+            (
+                pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST")
+                - pl.col("DEAL_OPPORTUNITY_DATETIME")
+            )
             .dt.total_days()
             .alias("opp_to_lost_days"),
-
             (pl.col("DEAL_SQL_DATETIME") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_sql_days"),
-
             (pl.col("DEAL_OPPORTUNITY_DATETIME") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_opp_days"),
-
             (pl.col("DEAL_CLOSED_WON_DATE") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_won_days"),
-
             (pl.col("DEAL_DATETIME_ENTERED_CLOSEDLOST") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_lost_days"),
-
             (pl.col("closed_at") - pl.col("DEAL_CREATEDATE"))
             .dt.total_days()
             .alias("creation_to_closed_days"),

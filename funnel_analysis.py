@@ -10,6 +10,7 @@ from lead_scoring.data.manipulations import prepare_data_for_analysis
 from lead_scoring.data.schema import RawDealsSchemaWithDatetime
 from lead_scoring.data.validation import build_validation_report, cast_datetime_columns
 
+
 @pa.check_types
 def run_funnel_analysis_pipeline(
     path: str,
@@ -25,6 +26,7 @@ def run_funnel_analysis_pipeline(
     enriched_df = prepare_data_for_analysis(df)
     logging.info("Data enriched successfully.")
     return enriched_df, report
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
