@@ -4,6 +4,27 @@ __generated_with = "0.23.1"
 app = marimo.App(width="medium")
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Volumes and Conversion Rate Analysis
+
+    Il tempo tipico tra uno stage e l'altro varia tra 0 e 30 gionrni. La durata aumenta fino a 90 giorni per l'ultimo step da opprtunity a deal chiuso/perso.
+
+    L'intero processo di acquisizione di un cliente, dalla data creazione della lead alla firma/rinuncia del contratto varia da 0 a 180 giorni con una media di circa 90 giorni.
+
+    L'unico momento in cui si nota chiaramente che alcune variabli potrebbero essere predittive è nella fase tra opportunity e won. In questa fase si nota una chiara differenza di success rate a seconda del valore di queste variabili:
+
+    - DEAL_DEMO_SCORE
+    - DEAL_NUMBER_TIMES_CONTACTED
+    - DEAL_DEALSOURCE
+    - DEAL_INDUSTRY
+    - CONTACT_ROLE
+    - COMPANY_STATE
+    """)
+    return
+
+
 @app.cell
 def _():
     import marimo as mo
@@ -17,13 +38,15 @@ def _():
     from pandera.typing.polars import DataFrame
 
     from lead_scoring.data.io import read_lead_data
-    from lead_scoring.data.manipulations import (
-        cast_datetime_columns,
+    from lead_scoring.data.manipulations import (cast_datetime_columns,
         prepare_data_for_analysis,
         drop_future_terminal_deals,
+        drop_disqualified_deals
     )
     from lead_scoring.data.schema import RawDealsSchemaWithDatetime
-    from lead_scoring.data.validation import build_validation_report
+    from lead_scoring.data.validation import (
+        build_validation_report
+    )
 
     from lead_scoring.analysis.funnel_analysis import analyze_funnel
 
@@ -32,9 +55,9 @@ def _():
         asdict,
         build_validation_report,
         cast_datetime_columns,
+        drop_disqualified_deals,
         drop_future_terminal_deals,
         json,
-        logging,
         mo,
         prepare_data_for_analysis,
         read_lead_data,
@@ -47,9 +70,9 @@ def _(
     asdict,
     build_validation_report,
     cast_datetime_columns,
+    drop_disqualified_deals,
     drop_future_terminal_deals,
     json,
-    logging,
     prepare_data_for_analysis,
     read_lead_data,
 ):
@@ -65,8 +88,9 @@ def _(
         json.dumps(asdict(report), indent=2, sort_keys=False),
     )
     df = drop_future_terminal_deals(df)
+    df = drop_disqualified_deals(df)
     enriched_df = prepare_data_for_analysis(df)
-    logging.info("Data enriched successfully.")
+    print("Data enriched successfully.")
 
     result = analyze_funnel(enriched_df)
     return enriched_df, result
@@ -85,8 +109,9 @@ def _(result):
     result.plot_stage_volumes().show()
     result.plot_step_conversion_rates().show()
     result.plot_vs_created_conversion_rates().show()
+    result.plot_avg_deal_amount_by_stage().show()
 
-    # print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
+    #print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
     return
 
 
@@ -102,7 +127,7 @@ def _(mo):
 def _(analyze_funnel, enriched_df):
     opp_result = analyze_funnel(
         enriched_df,
-        step="sql_to_opp",
+        step="opp_to_won",
     )
 
     numeric_columns_to_analyse = [
@@ -131,7 +156,7 @@ def _(analyze_funnel, enriched_df):
         opp_result.plot_categorical_conversion(col).show()
 
     opp_result.plot_closed_lost_reasons().show()
-    return categorical_columns_to_analyse, col, numeric_columns_to_analyse
+    return (col,)
 
 
 @app.cell(hide_code=True)
@@ -146,7 +171,7 @@ def _(mo):
 def _(analyze_funnel, enriched_df):
     segment_result = analyze_funnel(
         enriched_df,
-        segment_col="LEAD_TYPE",
+        segment_col="DEAL_CLOSED_LOST_REASON",
         step="opp_to_won",
     )
 
@@ -157,16 +182,30 @@ def _(analyze_funnel, enriched_df):
 
 
 @app.cell
-def _(
-    categorical_columns_to_analyse,
-    col,
-    numeric_columns_to_analyse,
-    segment_result,
-):
-    for segment_col in numeric_columns_to_analyse:
-        segment_result.plot_numeric_boxplot(col).show()
+def _(col, segment_result):
+    segment_numeric_columns_to_analyse = [
+        "DEAL_DEMO_SCORE",
+        "DEAL_AMOUNT",
+        "DEAL_NUMBER_TIMES_CONTACTED",
+        "COMPANY_REVENUE",
+    ]
 
-    for segment_col in categorical_columns_to_analyse:
+    segment_categorical_columns_to_analyse = [
+        "DEAL_DEALSOURCE",
+        "DEAL_SOURCE_DETAIL",
+        "UTM_SOURCE",
+        "LEAD_TYPE",
+        "DEAL_INDUSTRY",
+        "CONTACT_ROLE",
+        "COMPANY_STATE",
+        "DEAL_HRIS_TECH_STACK",
+        "DEAL_CCNL_MACRO",
+    ]
+
+    for segment_col in segment_numeric_columns_to_analyse:
+        segment_result.plot_numeric_boxplot(segment_col).show()
+
+    for segment_col in segment_categorical_columns_to_analyse:
         segment_result.plot_categorical_conversion(col).show()
 
     segment_result.plot_closed_lost_reasons().show()
