@@ -1,6 +1,10 @@
 from datetime import datetime
 
 import polars as pl
+from pandera.typing.polars import DataFrame
+
+
+from lead_scoring.data.schema import RawDealsSchema, RawDealsSchemaWithDatetime
 
 
 def cast_datetime_columns(
@@ -47,3 +51,10 @@ def drop_disqualified_deals(df: pl.DataFrame) -> pl.DataFrame:
         ~pl.col("DEAL_CLOSED_LOST_REASON").str.contains("Disqualified")
         | pl.col("DEAL_CLOSED_LOST_REASON").is_null()
     )
+
+
+def clean_data(df: DataFrame[RawDealsSchema]) -> DataFrame[RawDealsSchemaWithDatetime]:
+    df = cast_datetime_columns(df)  # pyright: ignore[reportAssignmentType]
+    df = drop_future_terminal_deals(df)  # pyright: ignore[reportAssignmentType]
+    df = drop_disqualified_deals(df)  # pyright: ignore[reportAssignmentType]
+    return DataFrame[RawDealsSchemaWithDatetime](df)
