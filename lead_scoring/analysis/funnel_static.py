@@ -17,10 +17,20 @@ STEP_CONFIG: dict[str, dict[str, str | pl.Expr | None]] = {
         "target_col": "is_sql",
         "label": "MQL → SQL",
     },
+    "mql_to_won": {
+        "scope_filter": pl.col("is_mql"),
+        "target_col": "is_closed_won",
+        "label": "MQL → Closed Won",
+    },
     "sql_to_opp": {
         "scope_filter": pl.col("is_sql"),
         "target_col": "is_opportunity",
         "label": "SQL → Opportunity",
+    },
+    "sql_to_won": {
+        "scope_filter": pl.col("is_sql"),
+        "target_col": "is_closed_won",
+        "label": "SQL → Closed Won",
     },
     "opp_to_won": {
         "scope_filter": pl.col("is_opportunity"),
@@ -69,6 +79,7 @@ class FunnelMetrics:
     volumes: dict[str, int]
     step_conversion_rates: dict[str, float | None]
     vs_created_conversion_rates: dict[str, float | None]
+    stage_to_outcome_conversion_rates: dict[str, float | None]
 
 
 @dataclass
@@ -108,6 +119,10 @@ def compute_funnel_metrics(df: pl.DataFrame) -> FunnelMetrics:
         "opp_to_won": safe_rate(volumes["closed_won"], volumes["opportunity"]),
     }
 
+    stage_to_outcome_rates = {
+        "mql_to_won": safe_rate(volumes["closed_won"], volumes["mql"]),
+        "sql_to_won": safe_rate(volumes["closed_won"], volumes["sql"]),    }
+
     vs_created_rates = {
         "creation_to_mql": safe_rate(volumes["mql"], volumes["created"]),
         "creation_to_sql": safe_rate(volumes["sql"], volumes["created"]),
@@ -122,6 +137,7 @@ def compute_funnel_metrics(df: pl.DataFrame) -> FunnelMetrics:
         volumes=volumes,
         step_conversion_rates=step_rates,
         vs_created_conversion_rates=vs_created_rates,
+        stage_to_outcome_conversion_rates=stage_to_outcome_rates,
     )
 
 
@@ -199,6 +215,22 @@ def compute_segment_funnel_metrics(
                 )
                 .otherwise(None)
                 .alias("creation_to_lost"),
+                pl.when(pl.col("mql") > 0)
+                .then(
+                    (pl.col("closed_won") / pl.col("mql")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
+                .otherwise(None)
+                .alias("mql_to_won"),
+                pl.when(pl.col("sql") > 0)
+                .then(
+                    (pl.col("closed_won") / pl.col("sql")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
+                .otherwise(None)
+                .alias("sql_to_won"),
             ]
         )
         .sort("created", descending=True)
@@ -412,13 +444,7 @@ def summarize_closed_lost_reasons_by_segment(
 
 def get_sql_to_demo_score_rate(df: pl.DataFrame) -> float | None:
     sql_df = df.filter(pl.col("is_sql"))
-
-    if sql_df.height == 0:
-        return None
-
     value = sql_df.select(pl.col("DEAL_DEMO_SCORE").is_not_null().mean()).item()
-    if value is None:
-        return None
     return round(float(value), FLOAT_METRIC_ROUND_DIGITS)
 
 

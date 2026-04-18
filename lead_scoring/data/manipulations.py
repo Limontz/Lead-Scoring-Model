@@ -165,3 +165,10 @@ def cast_datetime_columns(
             for col in datetime_columns
         ]
     )
+
+def drop_disqualified_deals(df: pl.DataFrame) -> pl.DataFrame:
+
+    return df.filter(
+        pl.col("DEAL_CLOSED_LOST_REASON").str.contains("Disqualified") |
+        pl.col("DEAL_CLOSED_LOST_REASON").is_null()
+    )

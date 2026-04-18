@@ -59,6 +59,7 @@ class FunnelAnalysisResult:
             "overall_volumes": self.overall_metrics.volumes,
             "overall_step_conversion_rates": self.overall_metrics.step_conversion_rates,
             "overall_vs_created_conversion_rates": self.overall_metrics.vs_created_conversion_rates,
+            "overall_stage_to_outcome_conversion_rates": self.overall_metrics.stage_to_outcome_conversion_rates,
             "sql_to_demo_score_rate": self.process_metrics.sql_to_demo_score_rate,
         }
 
@@ -172,12 +173,41 @@ class FunnelAnalysisResult:
         plot_df = compute_segment_conversion_long(
             self.segment_metrics,
             self.segment_col,
-            ["creation_to_mql", "mql_to_sql", "sql_to_opp", "opp_to_won"],
+            [
+                "creation_to_mql",
+                "mql_to_sql",
+                "sql_to_opp",
+                "opp_to_won",
+            ],
         )
         return plot_segment_conversion_rates(
             plot_df,
             segment_col=self.segment_col,
             title=f"Step conversion rates by {self.segment_col}",
+        )
+
+    def plot_stage_to_outcome_conversion_rates(self) -> go.Figure:
+        if self.segment_col is None:
+            return plot_conversion_rates(
+                self.overall_metrics.stage_to_outcome_conversion_rates,
+                title="Stage-to-outcome conversion rates",
+            )
+
+        if self.segment_metrics is None:
+            raise ValueError("No segment_metrics was provided.")
+        plot_df = compute_segment_conversion_long(
+            self.segment_metrics,
+            self.segment_col,
+            [
+                "mql_to_won",
+                "sql_to_won",
+                "opp_to_won",
+            ],
+        )
+        return plot_segment_conversion_rates(
+            plot_df,
+            segment_col=self.segment_col,
+            title=f"Stage-to-outcome conversion rates by {self.segment_col}",
         )
 
     def plot_vs_created_conversion_rates(self) -> go.Figure:
