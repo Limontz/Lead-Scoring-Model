@@ -1,5 +1,5 @@
 import polars as pl
-from lead_scoring.analysis.api import FunnelAnalysisResult
+from lead_scoring.analysis.api import FunnelAnalysisResult, TemporalAnalysisResult
 from lead_scoring.analysis.funnel_static import (
     CATEGORICAL_FEATURES_DEFAULT,
     DURATION_FEATURES_DEFAULT,
@@ -13,6 +13,7 @@ from lead_scoring.analysis.funnel_static import (
     summarize_duration_columns,
     summarize_duration_columns_by_segment,
 )
+from lead_scoring.analysis.funnel_temporal import STAGE_MONTH_COLS, TEMPORAL_CONVERSION_COLS_DEFAULT, TEMPORAL_DURATION_COLS_DEFAULT, build_temporal_summary, compute_monthly_created_cohort_metrics, compute_monthly_duration_trends, compute_monthly_segment_conversion_trends, compute_monthly_segment_duration_trends, compute_monthly_segment_stage_entries, compute_monthly_sql_to_demo_score_rate, compute_monthly_stage_entries
 
 
 def analyze_funnel(
@@ -72,3 +73,64 @@ def analyze_funnel(
         categorical_features=categorical_features or CATEGORICAL_FEATURES_DEFAULT,
         duration_features=duration_features,
     )
+
+def analyze_temporal(
+    df: pl.DataFrame,
+    *,
+    segment_col: str | None = None,
+    conversion_cols: list[str] | None = None,
+    duration_cols: list[str] | None = None,
+) -> TemporalAnalysisResult:
+
+    conversion_cols = conversion_cols or TEMPORAL_CONVERSION_COLS_DEFAULT
+    duration_cols = duration_cols or TEMPORAL_DURATION_COLS_DEFAULT
+
+    summary_stats = build_temporal_summary(df)
+
+    monthly_stage_entries = compute_monthly_stage_entries(
+        df,
+        stage_month_cols=STAGE_MONTH_COLS,
+    )
+    monthly_created_cohort = compute_monthly_created_cohort_metrics(df)
+    monthly_duration_trends = compute_monthly_duration_trends(
+        df,
+        duration_cols=duration_cols,
+    )
+    monthly_sql_to_demo_score = compute_monthly_sql_to_demo_score_rate(df)
+
+    if segment_col is None:
+        monthly_segment_stage_entries = None
+        monthly_segment_created_cohort = None
+        monthly_segment_duration_trends = None
+    else:
+        monthly_segment_stage_entries = compute_monthly_segment_stage_entries(
+            df,
+            segment_col=segment_col,
+            stage_month_cols=STAGE_MONTH_COLS,
+        )
+        monthly_segment_created_cohort = compute_monthly_segment_conversion_trends(
+            df,
+            segment_col=segment_col,
+        )
+        monthly_segment_duration_trends = compute_monthly_segment_duration_trends(
+            df,
+            segment_col=segment_col,
+            duration_cols=duration_cols,
+        )
+
+    return TemporalAnalysisResult(
+        full_df=df,
+        temporal_df=df,
+        segment_col=segment_col,
+        summary_stats=summary_stats,
+        monthly_stage_entries=monthly_stage_entries,
+        monthly_created_cohort=monthly_created_cohort,
+        monthly_duration_trends=monthly_duration_trends,
+        monthly_sql_to_demo_score=monthly_sql_to_demo_score,
+        monthly_segment_stage_entries=monthly_segment_stage_entries,
+        monthly_segment_created_cohort=monthly_segment_created_cohort,
+        monthly_segment_duration_trends=monthly_segment_duration_trends,
+        conversion_cols=conversion_cols,
+        duration_cols=duration_cols,
+    )
+
