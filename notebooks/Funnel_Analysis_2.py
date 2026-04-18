@@ -109,6 +109,7 @@ def _(result):
     result.plot_stage_volumes().show()
     result.plot_step_conversion_rates().show()
     result.plot_vs_created_conversion_rates().show()
+    result.plot_stage_to_outcome_conversion_rates().show()
     result.plot_avg_deal_amount_by_stage().show()
 
     #print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
@@ -127,7 +128,7 @@ def _(mo):
 def _(analyze_funnel, enriched_df):
     opp_result = analyze_funnel(
         enriched_df,
-        step="opp_to_won",
+        step="mql_to_won",
     )
 
     numeric_columns_to_analyse = [
@@ -171,7 +172,7 @@ def _(mo):
 def _(analyze_funnel, enriched_df):
     segment_result = analyze_funnel(
         enriched_df,
-        segment_col="DEAL_CLOSED_LOST_REASON",
+        segment_col="DEAL_DEALSOURCE",
         step="opp_to_won",
     )
 
