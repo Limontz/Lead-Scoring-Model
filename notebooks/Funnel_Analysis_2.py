@@ -43,6 +43,7 @@ def _():
         drop_future_terminal_deals,
         drop_disqualified_deals
     )
+    from lead_scoring.data.schema import RawDealsSchemaWithDatetime
     from lead_scoring.data.validation import (
         build_validation_report
     )
@@ -109,7 +110,8 @@ def _(result):
     result.plot_step_conversion_rates().show()
     result.plot_vs_created_conversion_rates().show()
     result.plot_avg_deal_amount_by_stage().show()
-    result.plot_stage_to_outcome_conversion_rates().show()
+
+    #print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
     return
 
 
@@ -125,7 +127,7 @@ def _(mo):
 def _(analyze_funnel, enriched_df):
     opp_result = analyze_funnel(
         enriched_df,
-        step="sql_to_opp",
+        step="opp_to_won",
     )
 
     numeric_columns_to_analyse = [
@@ -206,7 +208,7 @@ def _(col, segment_result):
     for segment_col in segment_categorical_columns_to_analyse:
         segment_result.plot_categorical_conversion(col).show()
 
-    #segment_result.plot_closed_lost_reasons().show()
+    segment_result.plot_closed_lost_reasons().show()
     return
 
 

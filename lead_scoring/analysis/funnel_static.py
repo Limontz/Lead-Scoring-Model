@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import polars as pl
 
 
 FLOAT_METRIC_ROUND_DIGITS = 2
 
-
+# TODO: put this variables in functions in another file and call it defaults.py
 STEP_CONFIG: dict[str, dict[str, str | pl.Expr | None]] = {
     "created_to_mql": {
         "scope_filter": None,
@@ -80,6 +80,7 @@ class FunnelMetrics:
     step_conversion_rates: dict[str, float | None]
     vs_created_conversion_rates: dict[str, float | None]
     stage_to_outcome_conversion_rates: dict[str, float | None]
+    avg_deal_amount_by_stage: dict[str, float | None] = field(default_factory=dict)
 
 
 @dataclass
@@ -138,6 +139,7 @@ def compute_funnel_metrics(df: pl.DataFrame) -> FunnelMetrics:
         step_conversion_rates=step_rates,
         vs_created_conversion_rates=vs_created_rates,
         stage_to_outcome_conversion_rates=stage_to_outcome_rates,
+        avg_deal_amount_by_stage=compute_avg_deal_amount_by_stage(df),
     )
 
 
@@ -450,6 +452,44 @@ def get_sql_to_demo_score_rate(df: pl.DataFrame) -> float | None:
 
 def compute_process_metrics(df: pl.DataFrame) -> FunnelProcessMetrics:
     return FunnelProcessMetrics(sql_to_demo_score_rate=get_sql_to_demo_score_rate(df))
+
+
+def compute_avg_deal_amount_by_stage(df: pl.DataFrame) -> dict[str, float | None]:
+    created_avg = df.select(pl.col("DEAL_AMOUNT").mean()).item()
+    mql_avg = (
+        df.filter(pl.col("is_mql"))
+        .select(pl.col("DEAL_AMOUNT").mean())
+        .item()
+    )
+    sql_avg = (
+        df.filter(pl.col("is_sql"))
+        .select(pl.col("DEAL_AMOUNT").mean())
+        .item()
+    )
+    opportunity_avg = (
+        df.filter(pl.col("is_opportunity"))
+        .select(pl.col("DEAL_AMOUNT").mean())
+        .item()
+    )
+    closed_won_avg = (
+        df.filter(pl.col("is_closed_won"))
+        .select(pl.col("DEAL_AMOUNT").mean())
+        .item()
+    )
+    closed_lost_avg = (
+        df.filter(pl.col("is_closed_lost"))
+        .select(pl.col("DEAL_AMOUNT").mean())
+        .item()
+    )
+
+    return {
+        "created": round(float(created_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "mql": round(float(mql_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "sql": round(float(sql_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "opportunity": round(float(opportunity_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "closed_won": round(float(closed_won_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "closed_lost": round(float(closed_lost_avg), FLOAT_METRIC_ROUND_DIGITS),
+    }
 
 
 def compute_segment_stage_volumes_long(

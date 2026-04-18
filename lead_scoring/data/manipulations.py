@@ -146,7 +146,6 @@ def drop_future_terminal_deals(df: pl.DataFrame) -> pl.DataFrame:
     return filtered_df
 
 
-@pa.check_types
 def cast_datetime_columns(
     df: pl.DataFrame,
 ) -> pl.DataFrame:
@@ -167,8 +166,7 @@ def cast_datetime_columns(
     )
 
 def drop_disqualified_deals(df: pl.DataFrame) -> pl.DataFrame:
-
     return df.filter(
-        pl.col("DEAL_CLOSED_LOST_REASON").str.contains("Disqualified") |
+        ~pl.col("DEAL_CLOSED_LOST_REASON").str.contains("Disqualified") |
         pl.col("DEAL_CLOSED_LOST_REASON").is_null()
     )

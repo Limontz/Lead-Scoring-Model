@@ -212,3 +212,222 @@ def plot_closed_lost_reasons(
         yaxis_title=reason_col,
     )
     return fig
+
+def plot_stage_entries(df: pl.DataFrame) -> go.Figure:
+    fig = px.line(
+        df,
+        x="month",
+        y="n_deals",
+        color="stage",
+        title="Stage entries over time",
+    )
+    fig.update_layout(template="plotly_white")
+    return fig
+
+def plot_conversion_trends(
+    df: pl.DataFrame,
+    conversion_cols: list[str],
+) -> go.Figure:
+    plot_df = df.select(["created_month"] + conversion_cols).unpivot(
+        index="created_month",
+        variable_name="metric",
+        value_name="value",
+    )
+
+    fig = px.line(
+        plot_df,
+        x="created_month",
+        y="value",
+        color="metric",
+        title="Conversion trends",
+    )
+    fig.update_yaxes(tickformat=".0%")
+    fig.update_layout(template="plotly_white")
+    return fig
+
+def plot_segment_trends(
+    df: pl.DataFrame,
+    segment_col: str,
+) -> go.Figure:
+    fig = px.line(
+        df,
+        x="created_month",
+        y="cr_created_to_won",
+        color=segment_col,
+        title=f"Conversion by {segment_col} over time",
+    )
+    fig.update_yaxes(tickformat=".0%")
+    return fig
+
+def plot_duration_trends(df: pl.DataFrame) -> go.Figure:
+    plot_df = df.unpivot(
+        index="created_month",
+        variable_name="metric",
+        value_name="value",
+    )
+
+    fig = px.line(
+        plot_df,
+        x="created_month",
+        y="value",
+        color="metric",
+        title="Duration trends",
+    )
+    return fig
+
+def plot_monthly_stage_entries(
+    df: pl.DataFrame,
+    title: str = "Monthly funnel stage entries",
+    segment_col: str | None = None,
+) -> go.Figure:
+    color_col = segment_col if segment_col else "stage"
+    line_group = "stage" if segment_col else None
+
+    fig = px.line(
+        df,
+        x="month",
+        y="n_deals",
+        color=color_col,
+        line_dash="stage" if segment_col else None,
+        line_group=line_group,
+        markers=True,
+        title=title,
+    )
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Month",
+        yaxis_title="Number of deals",
+    )
+    return fig
+
+
+def plot_monthly_conversion_trends(
+    monthly_cohort_df: pl.DataFrame,
+    conversion_cols: list[str],
+    title: str = "Monthly funnel conversion trends",
+    segment_col: str | None = None,
+) -> go.Figure:
+    index_cols = ["created_month"] + ([segment_col] if segment_col else [])
+
+    plot_df = monthly_cohort_df.select(index_cols + conversion_cols).unpivot(
+        on=conversion_cols,
+        index=index_cols,
+        variable_name="metric",
+        value_name="conversion_rate",
+    )
+
+    if segment_col:
+        fig = px.line(
+            plot_df,
+            x="created_month",
+            y="conversion_rate",
+            color=segment_col,
+            line_dash="metric",
+            markers=True,
+            title=title,
+        )
+    else:
+        fig = px.line(
+            plot_df,
+            x="created_month",
+            y="conversion_rate",
+            color="metric",
+            markers=True,
+            title=title,
+        )
+
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Creation month",
+        yaxis_title="Conversion rate",
+    )
+    fig.update_yaxes(tickformat=".0%")
+    return fig
+
+
+def plot_monthly_duration_trends(
+    monthly_duration_df: pl.DataFrame,
+    duration_cols: list[str],
+    title: str = "Monthly duration trends",
+    segment_col: str | None = None,
+) -> go.Figure:
+    index_cols = ["created_month"] + ([segment_col] if segment_col else [])
+
+    plot_df = monthly_duration_df.select(index_cols + duration_cols).unpivot(
+        on=duration_cols,
+        index=index_cols,
+        variable_name="metric",
+        value_name="days",
+    )
+
+    if segment_col:
+        fig = px.line(
+            plot_df,
+            x="created_month",
+            y="days",
+            color=segment_col,
+            line_dash="metric",
+            markers=True,
+            title=title,
+        )
+    else:
+        fig = px.line(
+            plot_df,
+            x="created_month",
+            y="days",
+            color="metric",
+            markers=True,
+            title=title,
+        )
+
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Creation month",
+        yaxis_title="Days",
+    )
+    return fig
+
+
+def plot_monthly_sql_to_demo_score_rate(
+    df: pl.DataFrame,
+    title: str = "Monthly SQL → demo score rate",
+    segment_col: str | None = None,
+) -> go.Figure:
+    fig = px.line(
+        df,
+        x="created_month",
+        y="sql_to_demo_score_rate",
+        color=segment_col,
+        markers=True,
+        title=title,
+    )
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title="Creation month",
+        yaxis_title="SQL → demo score rate",
+    )
+    fig.update_yaxes(tickformat=".0%")
+    return fig
+
+
+STAGE_ORDER = ["created", "mql", "sql", "opportunity", "closed_won", "closed_lost"]
+
+
+def plot_avg_deal_amount_by_stage(
+    avg_amounts: dict[str, float | None],
+    title: str = "Average deal amount by funnel stage",
+) -> go.Figure:
+    stages = [s for s in STAGE_ORDER]
+    values = [avg_amounts[s] for s in stages]  # type: ignore[index]
+    plot_df = pl.DataFrame({"stage": stages, "avg_deal_amount": values})
+    fig = px.bar(
+        plot_df,
+        x="stage",
+        y="avg_deal_amount",
+        text="avg_deal_amount",
+        category_orders={"stage": stages},
+        title=title,
+    )
+    fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
+    fig.update_layout(template="plotly_white", xaxis_title="Stage", yaxis_title="Avg deal amount (€)")
+    return fig
