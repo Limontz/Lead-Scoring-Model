@@ -8,7 +8,10 @@ from lead_scoring.scoring_model.training import (
     stratified_train_test_split,
     train_model,
 )
-from lead_scoring.scoring_model.evaluation import evaluate_binary_classifier
+from lead_scoring.scoring_model.evaluation import (
+    evaluate_binary_classifier,
+    get_linear_model_weights,
+)
 from lead_scoring.registry import FunnelStage
 
 
@@ -51,6 +54,13 @@ if __name__ == "__main__":
         from_stage=FunnelStage.SQL,
     )
     print("Model performance:")
-    print(f"  ROC-AUC: {metrics.roc_auc:.2f}")
-    print(f"  Average Precision: {metrics.average_precision:.2f}")
-    print(f"  Accuracy: {metrics.accuracy:.2f}")
+    print(f"  ROC-AUC: {metrics.roc_auc:.8f}")
+    print(f"  Average Precision: {metrics.average_precision:.8f}")
+    print(f"  Accuracy: {metrics.accuracy:.8f}")
+
+    try:
+        weights_df = get_linear_model_weights(pipeline)
+        print("\nTop linear model weights (by absolute value):")
+        print(weights_df.select(["feature", "weight"]).head(20))
+    except ValueError:
+        print("\nModel does not expose linear coefficients (e.g., tree-based model).")
