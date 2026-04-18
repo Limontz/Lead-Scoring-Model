@@ -1,13 +1,10 @@
 from datetime import datetime, timedelta
 
 import polars as pl
-from sklearn.linear_model import LogisticRegression
 
+from lead_scoring.registry import ModelName
 from lead_scoring.scoring_model.config import ScoringModelConfig
-from lead_scoring.scoring_model.training import (
-    build_logistic_regression_model,
-    train_logistic_regression,
-)
+from lead_scoring.scoring_model.training import stratified_train_test_split, train_model
 
 
 def _build_training_df() -> pl.DataFrame:
@@ -29,24 +26,42 @@ def _build_training_df() -> pl.DataFrame:
     )
 
 
-def test_build_logistic_regression_model() -> None:
-    config = ScoringModelConfig(random_state=7)
+def test_train_model_returns_pipeline() -> None:
 
-    model = build_logistic_regression_model(config)
-
-    assert isinstance(model, LogisticRegression)
-    assert model.random_state == 7
-    assert model.max_iter == 1000
-
-
-def test_train_logistic_regression() -> None:
     df = _build_training_df()
-    config = ScoringModelConfig()
+    config = ScoringModelConfig(model_name=ModelName.LOGISTIC_REGRESSION)
 
-    pipeline, metrics = train_logistic_regression(df=df, config=config)
+    X_train, X_test, y_train, y_test = stratified_train_test_split(
+        df,
+        target_col=config.target,
+        train_portion=0.7,
+        random_state=42,
+    )
 
+    pipeline = train_model(X_train, y_train, config)
+
+    assert pipeline is not None
     assert "preprocessor" in pipeline.named_steps
     assert "model" in pipeline.named_steps
-    assert 0.0 <= metrics.roc_auc <= 1.0
-    assert 0.0 <= metrics.average_precision <= 1.0
-    assert 0.0 <= metrics.accuracy <= 1.0
+
+
+def test_train_model_with_custom_model_params() -> None:
+
+    df = _build_training_df()
+    config = ScoringModelConfig(
+        model_name=ModelName.LOGISTIC_REGRESSION,
+        model_params={"C": 0.1, "max_iter": 500},
+    )
+
+    X_train, X_test, y_train, y_test = stratified_train_test_split(
+        df,
+        target_col=config.target,
+        train_portion=0.7,
+        random_state=42,
+    )
+
+    pipeline = train_model(X_train, y_train, config)
+    model = pipeline.named_steps["model"]
+
+    assert model.C == 0.1
+    assert model.max_iter == 500

@@ -1,4 +1,7 @@
 from dataclasses import dataclass, field
+from typing import Any
+
+from lead_scoring.registry import ModelName
 
 
 @dataclass
@@ -18,6 +21,8 @@ class ScoringModelConfig:
         ]
     )
     numerical_features: list[str] = field(default_factory=list)
+    model_name: ModelName = ModelName.XGBOOST
+    model_params: dict[str, Any] = field(default_factory=dict)
     training_set_portion: float = 0.7
     random_state: int = 42
 
