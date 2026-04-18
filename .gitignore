@@ -336,4 +336,7 @@ pyrightconfig.json
 #marimo
 __marimo__/
 
+# agent.md
+AGENT.md
+
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,macos,python,jupyternotebooks

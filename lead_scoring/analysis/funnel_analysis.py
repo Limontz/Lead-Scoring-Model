@@ -13,7 +13,19 @@ from lead_scoring.analysis.funnel_static import (
     summarize_duration_columns,
     summarize_duration_columns_by_segment,
 )
-from lead_scoring.analysis.funnel_temporal import STAGE_MONTH_COLS, TEMPORAL_CONVERSION_COLS_DEFAULT, TEMPORAL_DURATION_COLS_DEFAULT, build_temporal_summary, compute_monthly_created_cohort_metrics, compute_monthly_duration_trends, compute_monthly_segment_conversion_trends, compute_monthly_segment_duration_trends, compute_monthly_segment_stage_entries, compute_monthly_sql_to_demo_score_rate, compute_monthly_stage_entries
+from lead_scoring.analysis.funnel_temporal import (
+    STAGE_MONTH_COLS,
+    TEMPORAL_CONVERSION_COLS_DEFAULT,
+    TEMPORAL_DURATION_COLS_DEFAULT,
+    build_temporal_summary,
+    compute_monthly_created_cohort_metrics,
+    compute_monthly_duration_trends,
+    compute_monthly_segment_conversion_trends,
+    compute_monthly_segment_duration_trends,
+    compute_monthly_segment_stage_entries,
+    compute_monthly_sql_to_demo_score_rate,
+    compute_monthly_stage_entries,
+)
 
 
 def analyze_funnel(
@@ -74,6 +86,7 @@ def analyze_funnel(
         duration_features=duration_features,
     )
 
+
 def analyze_temporal(
     df: pl.DataFrame,
     *,
@@ -133,4 +146,3 @@ def analyze_temporal(
         conversion_cols=conversion_cols,
         duration_cols=duration_cols,
     )
-

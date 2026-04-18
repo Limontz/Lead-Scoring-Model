@@ -122,7 +122,8 @@ def compute_funnel_metrics(df: pl.DataFrame) -> FunnelMetrics:
 
     stage_to_outcome_rates = {
         "mql_to_won": safe_rate(volumes["closed_won"], volumes["mql"]),
-        "sql_to_won": safe_rate(volumes["closed_won"], volumes["sql"]),    }
+        "sql_to_won": safe_rate(volumes["closed_won"], volumes["sql"]),
+    }
 
     vs_created_rates = {
         "creation_to_mql": safe_rate(volumes["mql"], volumes["created"]),
@@ -456,30 +457,16 @@ def compute_process_metrics(df: pl.DataFrame) -> FunnelProcessMetrics:
 
 def compute_avg_deal_amount_by_stage(df: pl.DataFrame) -> dict[str, float | None]:
     created_avg = df.select(pl.col("DEAL_AMOUNT").mean()).item()
-    mql_avg = (
-        df.filter(pl.col("is_mql"))
-        .select(pl.col("DEAL_AMOUNT").mean())
-        .item()
-    )
-    sql_avg = (
-        df.filter(pl.col("is_sql"))
-        .select(pl.col("DEAL_AMOUNT").mean())
-        .item()
-    )
+    mql_avg = df.filter(pl.col("is_mql")).select(pl.col("DEAL_AMOUNT").mean()).item()
+    sql_avg = df.filter(pl.col("is_sql")).select(pl.col("DEAL_AMOUNT").mean()).item()
     opportunity_avg = (
-        df.filter(pl.col("is_opportunity"))
-        .select(pl.col("DEAL_AMOUNT").mean())
-        .item()
+        df.filter(pl.col("is_opportunity")).select(pl.col("DEAL_AMOUNT").mean()).item()
     )
     closed_won_avg = (
-        df.filter(pl.col("is_closed_won"))
-        .select(pl.col("DEAL_AMOUNT").mean())
-        .item()
+        df.filter(pl.col("is_closed_won")).select(pl.col("DEAL_AMOUNT").mean()).item()
     )
     closed_lost_avg = (
-        df.filter(pl.col("is_closed_lost"))
-        .select(pl.col("DEAL_AMOUNT").mean())
-        .item()
+        df.filter(pl.col("is_closed_lost")).select(pl.col("DEAL_AMOUNT").mean()).item()
     )
 
     return {

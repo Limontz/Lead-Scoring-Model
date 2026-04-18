@@ -213,6 +213,7 @@ def plot_closed_lost_reasons(
     )
     return fig
 
+
 def plot_stage_entries(df: pl.DataFrame) -> go.Figure:
     fig = px.line(
         df,
@@ -223,6 +224,7 @@ def plot_stage_entries(df: pl.DataFrame) -> go.Figure:
     )
     fig.update_layout(template="plotly_white")
     return fig
+
 
 def plot_conversion_trends(
     df: pl.DataFrame,
@@ -245,6 +247,7 @@ def plot_conversion_trends(
     fig.update_layout(template="plotly_white")
     return fig
 
+
 def plot_segment_trends(
     df: pl.DataFrame,
     segment_col: str,
@@ -258,6 +261,7 @@ def plot_segment_trends(
     )
     fig.update_yaxes(tickformat=".0%")
     return fig
+
 
 def plot_duration_trends(df: pl.DataFrame) -> go.Figure:
     plot_df = df.unpivot(
@@ -274,6 +278,7 @@ def plot_duration_trends(df: pl.DataFrame) -> go.Figure:
         title="Duration trends",
     )
     return fig
+
 
 def plot_monthly_stage_entries(
     df: pl.DataFrame,
@@ -429,5 +434,7 @@ def plot_avg_deal_amount_by_stage(
         title=title,
     )
     fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
-    fig.update_layout(template="plotly_white", xaxis_title="Stage", yaxis_title="Avg deal amount (€)")
+    fig.update_layout(
+        template="plotly_white", xaxis_title="Stage", yaxis_title="Avg deal amount (€)"
+    )
     return fig
