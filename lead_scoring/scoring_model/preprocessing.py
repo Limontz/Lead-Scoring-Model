@@ -1,7 +1,7 @@
 import logging
 
 import polars as pl
-from lead_scoring.scoring_model.registry import FunnelStage
+from lead_scoring.registry import FunnelStage
 from pandera import polars as pa
 from pandera.typing.polars import DataFrame
 

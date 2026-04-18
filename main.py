@@ -4,7 +4,7 @@ from lead_scoring.data.cleaning import clean_data
 from lead_scoring.data.io import read_lead_data
 from lead_scoring.scoring_model.config import get_scoring_model_config
 from lead_scoring.scoring_model.preprocessing import preprocess_data
-from lead_scoring.scoring_model.registry import FunnelStage
+from lead_scoring.registry import FunnelStage
 
 
 def score_lead(path: str, from_stage: FunnelStage):
