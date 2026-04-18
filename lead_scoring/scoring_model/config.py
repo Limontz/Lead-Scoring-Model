@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 @dataclass
 class ScoringModelConfig:
     target: str = "target_closed_won"
-    features: list[str] = field(
+    categorical_features: list[str] = field(
         default_factory=lambda: [
             "DEAL_DEALSOURCE",
             "DEAL_SOURCE_DETAIL",
@@ -17,7 +17,13 @@ class ScoringModelConfig:
             "DEAL_CCNL_MACRO",
         ]
     )
+    numerical_features: list[str] = field(default_factory=list)
     training_set_portion: float = 0.7
+    random_state: int = 42
+
+    @property
+    def total_features(self) -> list[str]:
+        return [*self.categorical_features, *self.numerical_features]
 
 
 def get_scoring_model_config() -> ScoringModelConfig:

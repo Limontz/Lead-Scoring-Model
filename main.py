@@ -13,7 +13,7 @@ def score_lead(path: str, from_stage: FunnelStage):
     clean_lead_score_df = clean_data(lead_score_df)
     preprocessed_lead_score_df = preprocess_data(
         clean_lead_score_df,
-        model_config.features,
+        model_config.total_features,
         model_config.target,
         from_stage=from_stage,
     )

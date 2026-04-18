@@ -51,7 +51,7 @@ def _drop_null_values(df: pl.DataFrame, subset: list[str]) -> pl.DataFrame:
 @pa.check_types
 def preprocess_data(
     df: DataFrame[RawDealsSchemaWithDatetime],
-    features: list[str],
+    total_features: list[str],
     target_column: str,
     from_stage: FunnelStage,
 ) -> DataFrame[PreprocessedDealsSchema]:
@@ -61,7 +61,7 @@ def preprocess_data(
     enriched_df = _keep_resolved_deals(enriched_df)
     modeling_df = _add_target_column(enriched_df, target_column)
     modeling_df = _select_feature_and_target_columns(
-        modeling_df, features, target_column
+        modeling_df, total_features, target_column
     )
-    modeling_df = _drop_null_values(modeling_df, features)
+    modeling_df = _drop_null_values(modeling_df, total_features)
     return DataFrame[PreprocessedDealsSchema](modeling_df)

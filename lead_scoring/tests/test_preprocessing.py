@@ -147,7 +147,7 @@ def test_preprocess_data_integration() -> None:
 
     result = preprocess_data(
         df=df,
-        features=features,
+        total_features=features,
         target_column="target_closed_won",
         from_stage=FunnelStage.MQL,
     )
