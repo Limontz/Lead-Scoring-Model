@@ -14,7 +14,7 @@ FUNNEL_STAGE_DATE_COLS = {
 }
 
 
-def _add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
+def add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(
         [
             pl.col("DEAL_MQL_DATETIME").is_not_null().alias("is_mql"),
@@ -116,7 +116,7 @@ def prepare_data_for_analysis(
     df: DataFrame[RawDealsSchemaWithDatetime],
 ) -> DataFrame[EnrichedDealsSchema]:
     enriched_df = (
-        df.pipe(_add_stage_flags)
+        df.pipe(add_stage_flags)
         .pipe(_add_final_state_columns)
         .pipe(_add_month_columns)
         .pipe(_add_duration_columns)

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pandera as pa
 import polars as pl
 from pandera.typing.polars import DataFrame
 
@@ -53,6 +54,7 @@ def drop_disqualified_deals(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+@pa.check_types
 def clean_data(df: DataFrame[RawDealsSchema]) -> DataFrame[RawDealsSchemaWithDatetime]:
     df = cast_datetime_columns(df)  # pyright: ignore[reportAssignmentType]
     df = drop_future_terminal_deals(df)  # pyright: ignore[reportAssignmentType]

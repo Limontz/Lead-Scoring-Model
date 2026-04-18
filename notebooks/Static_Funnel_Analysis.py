@@ -135,6 +135,7 @@ def _(analyze_funnel, enriched_df):
         "DEAL_AMOUNT",
         "DEAL_NUMBER_TIMES_CONTACTED",
         "COMPANY_REVENUE",
+        "mql_to_sql_days",
     ]
 
     categorical_columns_to_analyse = [

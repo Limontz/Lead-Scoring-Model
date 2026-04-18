@@ -119,3 +119,17 @@ class EnrichedDealsSchema(RawDealsSchemaWithDatetime):
     creation_to_won_days: Series[int] = pa.Field(nullable=True, ge=0)
     creation_to_lost_days: Series[int] = pa.Field(nullable=True, ge=0)
     creation_to_closed_days: Series[int] = pa.Field(nullable=True, ge=0)
+
+
+class PreprocessedDealsSchema(PanderaBaseModel):
+    DEAL_DEALSOURCE: Series[str] = pa.Field(nullable=False)
+    DEAL_SOURCE_DETAIL: Series[str] = pa.Field(nullable=True)
+    UTM_SOURCE: Series[str] = pa.Field(nullable=True)
+    LEAD_TYPE: Series[str] = pa.Field(nullable=True)
+    DEAL_INDUSTRY: Series[str] = pa.Field(nullable=False)
+    CONTACT_ROLE: Series[str] = pa.Field(nullable=False)
+    COMPANY_STATE: Series[str] = pa.Field(nullable=False)
+    DEAL_HRIS_TECH_STACK: Series[str] = pa.Field(nullable=False)
+    DEAL_CCNL_MACRO: Series[str] = pa.Field(nullable=True)
+
+    target_closed_won: Series[pl.Int64] = pa.Field(nullable=False, isin=[0, 1])
