@@ -40,6 +40,7 @@ class TemporalSummary:
     first_month: str | None
     last_month: str | None
 
+
 def compute_monthly_stage_entries(
     df: pl.DataFrame,
     stage_month_cols: dict[str, str] = STAGE_MONTH_COLS,
@@ -102,7 +103,9 @@ def compute_monthly_created_cohort_metrics(df: pl.DataFrame) -> pl.DataFrame:
         .with_columns(
             [
                 pl.when(pl.col("created") > 0)
-                .then((pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
+                )
                 .otherwise(None)
                 .alias("cr_created_to_mql"),
                 pl.when(pl.col("mql") > 0)
@@ -110,19 +113,35 @@ def compute_monthly_created_cohort_metrics(df: pl.DataFrame) -> pl.DataFrame:
                 .otherwise(None)
                 .alias("cr_mql_to_sql"),
                 pl.when(pl.col("sql") > 0)
-                .then((pl.col("opportunity") / pl.col("sql")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("opportunity") / pl.col("sql")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_sql_to_opp"),
                 pl.when(pl.col("opportunity") > 0)
-                .then((pl.col("closed_won") / pl.col("opportunity")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("closed_won") / pl.col("opportunity")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_opp_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then((pl.col("closed_won") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("closed_won") / pl.col("created")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_created_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then((pl.col("closed_lost") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("closed_lost") / pl.col("created")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_created_to_lost"),
             ]
@@ -193,11 +212,17 @@ def compute_monthly_segment_conversion_trends(
         .with_columns(
             [
                 pl.when(pl.col("created") > 0)
-                .then((pl.col("closed_won") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("closed_won") / pl.col("created")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_created_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then((pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
+                )
                 .otherwise(None)
                 .alias("cr_created_to_mql"),
                 pl.when(pl.col("mql") > 0)
@@ -205,11 +230,19 @@ def compute_monthly_segment_conversion_trends(
                 .otherwise(None)
                 .alias("cr_mql_to_sql"),
                 pl.when(pl.col("sql") > 0)
-                .then((pl.col("opportunity") / pl.col("sql")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("opportunity") / pl.col("sql")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_sql_to_opp"),
                 pl.when(pl.col("opportunity") > 0)
-                .then((pl.col("closed_won") / pl.col("opportunity")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then(
+                    (pl.col("closed_won") / pl.col("opportunity")).round(
+                        FLOAT_METRIC_ROUND_DIGITS
+                    )
+                )
                 .otherwise(None)
                 .alias("cr_opp_to_won"),
             ]
@@ -283,6 +316,10 @@ def build_temporal_summary(df: pl.DataFrame) -> TemporalSummary:
 
     return TemporalSummary(
         n_months=int(month_stats["n_months"] or 0),
-        first_month=None if month_stats["first_month"] is None else str(month_stats["first_month"]),
-        last_month=None if month_stats["last_month"] is None else str(month_stats["last_month"]),
+        first_month=None
+        if month_stats["first_month"] is None
+        else str(month_stats["first_month"]),
+        last_month=None
+        if month_stats["last_month"] is None
+        else str(month_stats["last_month"]),
     )

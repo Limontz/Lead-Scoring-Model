@@ -35,18 +35,7 @@ from lead_scoring.analysis.plots import (
     plot_monthly_stage_entries,
 )
 from lead_scoring.analysis.funnel_temporal import (
-    STAGE_MONTH_COLS,
-    TEMPORAL_CONVERSION_COLS_DEFAULT,
-    TEMPORAL_DURATION_COLS_DEFAULT,
     TemporalSummary,
-    build_temporal_summary,
-    compute_monthly_created_cohort_metrics,
-    compute_monthly_duration_trends,
-    compute_monthly_segment_conversion_trends,
-    compute_monthly_segment_duration_trends,
-    compute_monthly_segment_stage_entries,
-    compute_monthly_sql_to_demo_score_rate,
-    compute_monthly_stage_entries,
 )
 
 
@@ -392,8 +381,16 @@ class TemporalAnalysisResult:
 
     def available_features(self) -> dict[str, list[str]]:
         return {
-            "conversion_features": [c for c in self.conversion_cols if c in self.monthly_created_cohort.columns],
-            "duration_features": [c for c in self.duration_cols if c in self.monthly_duration_trends.columns],
+            "conversion_features": [
+                c
+                for c in self.conversion_cols
+                if c in self.monthly_created_cohort.columns
+            ],
+            "duration_features": [
+                c
+                for c in self.duration_cols
+                if c in self.monthly_duration_trends.columns
+            ],
         }
 
     def segment_summary(self) -> pl.DataFrame:
@@ -416,7 +413,9 @@ class TemporalAnalysisResult:
             segment_col=self.segment_col,
         )
 
-    def plot_conversion_trends(self, conversion_cols: list[str] | None = None) -> go.Figure:
+    def plot_conversion_trends(
+        self, conversion_cols: list[str] | None = None
+    ) -> go.Figure:
         conversion_cols = conversion_cols or self.conversion_cols
 
         if self.segment_col is None:

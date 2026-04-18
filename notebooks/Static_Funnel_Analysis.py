@@ -38,15 +38,14 @@ def _():
     from pandera.typing.polars import DataFrame
 
     from lead_scoring.data.io import read_lead_data
-    from lead_scoring.data.manipulations import (cast_datetime_columns,
-        prepare_data_for_analysis,
+    from lead_scoring.data.manipulations import prepare_data_for_analysis
+    from lead_scoring.data.cleaning import (
+        cast_datetime_columns,
         drop_future_terminal_deals,
-        drop_disqualified_deals
+        drop_disqualified_deals,
     )
     from lead_scoring.data.schema import RawDealsSchemaWithDatetime
-    from lead_scoring.data.validation import (
-        build_validation_report
-    )
+    from lead_scoring.data.validation import build_validation_report
 
     from lead_scoring.analysis.funnel_analysis import analyze_funnel
 
@@ -112,7 +111,7 @@ def _(result):
     result.plot_stage_to_outcome_conversion_rates().show()
     result.plot_avg_deal_amount_by_stage().show()
 
-    #print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
+    # print("sql_to_demo_rate:", result.process_metrics.sql_to_demo_score_rate)
     return
 
 
