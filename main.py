@@ -39,7 +39,7 @@ def run_full_workflow(
 
     pipeline = train_model(X_train, y_train, model_config)
 
-    metrics = evaluate_binary_classifier(pipeline, X_test, y_test)
+    metrics = evaluate_binary_classifier(pipeline, X_test, y_test, model_config)
 
     return pipeline, metrics
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     )
     pipeline, metrics = run_full_workflow(
         "data/lead_data.csv",
-        from_stage=FunnelStage.SQL,
+        from_stage=FunnelStage.MQL,
     )
     print("Model performance:")
     print(f"  ROC-AUC: {metrics.roc_auc:.8f}")

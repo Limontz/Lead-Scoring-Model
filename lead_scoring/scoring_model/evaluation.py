@@ -4,6 +4,9 @@ import polars as pl
 from sklearn.metrics import accuracy_score, average_precision_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 
+from lead_scoring.scoring_model.config import ScoringModelConfig
+from lead_scoring.scoring_model.training import prepare_features_for_model
+
 
 @dataclass(frozen=True)
 class ClassificationMetrics:
@@ -16,8 +19,13 @@ def evaluate_binary_classifier(
     pipeline: Pipeline,
     X_test: pl.DataFrame,
     y_test: pl.Series,
+    config: ScoringModelConfig,
 ) -> ClassificationMetrics:
-    X_test_pd = X_test.to_pandas()
+    X_test_pd = prepare_features_for_model(
+        X_test.to_pandas(),
+        model_name=config.model_name,
+        categorical_features=config.categorical_features,
+    )
     y_test_np = y_test.to_numpy()
 
     y_pred = pipeline.predict(X_test_pd)
@@ -36,6 +44,11 @@ def get_linear_model_weights(pipeline: Pipeline) -> pl.DataFrame:
 
     if not hasattr(model, "coef_"):
         raise ValueError("Model does not expose coefficients via coef_.")
+
+    if not hasattr(preprocessor, "get_feature_names_out"):
+        raise ValueError(
+            "Linear model weights are only supported with named preprocessor output."
+        )
 
     coefficients = model.coef_
     if coefficients.ndim == 1:

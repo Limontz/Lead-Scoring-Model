@@ -5,18 +5,20 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from lead_scoring.registry import MODEL_REGISTRY
+from lead_scoring.registry import MODEL_REGISTRY, ModelName
 from lead_scoring.scoring_model.config import ScoringModelConfig
 
 logger = logging.getLogger(__name__)
 
 
-def build_preprocessing_pipeline(
-    categorical_features: list[str],
-) -> ColumnTransformer:
+def build_preprocessing_pipeline(config: ScoringModelConfig) -> Any:
+    if config.model_name == ModelName.XGBOOST:
+        return "passthrough"
 
-    return ColumnTransformer(
-        transformers=[
+    transformers: list[tuple[str, Any, list[str]]] = []
+
+    if config.categorical_features:
+        transformers.append(
             (
                 "onehot",
                 OneHotEncoder(
@@ -24,11 +26,14 @@ def build_preprocessing_pipeline(
                     sparse_output=False,
                     drop="if_binary",
                 ),
-                categorical_features,
-            ),
-        ],
-        remainder="drop",
-    )
+                config.categorical_features,
+            )
+        )
+
+    if config.numerical_features:
+        transformers.append(("numeric", "passthrough", config.numerical_features))
+
+    return ColumnTransformer(transformers=transformers, remainder="drop")
 
 
 def build_model(config: ScoringModelConfig) -> Any:
@@ -38,13 +43,6 @@ def build_model(config: ScoringModelConfig) -> Any:
 
 
 def build_model_pipeline(config: ScoringModelConfig) -> Pipeline:
-
-    preprocessor = build_preprocessing_pipeline(config.categorical_features)
+    preprocessor = build_preprocessing_pipeline(config)
     model = build_model(config)
-    pipeline = Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            ("model", model),
-        ]
-    )
-    return pipeline
+    return Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])

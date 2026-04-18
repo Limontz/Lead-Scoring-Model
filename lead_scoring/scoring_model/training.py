@@ -1,7 +1,9 @@
+import pandas as pd
 import polars as pl
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
+from lead_scoring.registry import ModelName
 from lead_scoring.scoring_model.config import ScoringModelConfig
 from lead_scoring.scoring_model.pipeline import build_model_pipeline
 
@@ -34,11 +36,33 @@ def stratified_train_test_split(
     return X_train, X_test, y_train, y_test
 
 
+def prepare_features_for_model(
+    X_pd: pd.DataFrame,
+    model_name: ModelName,
+    categorical_features: list[str] | None = None,
+) -> pd.DataFrame:
+    if model_name != ModelName.XGBOOST:
+        return X_pd
+
+    prepared = X_pd.copy()
+
+    for col in categorical_features or []:
+        if col in prepared.columns:
+            prepared[col] = prepared[col].astype("category")
+
+    return prepared
+
+
 def train_model(
     X_train: pl.DataFrame,
     y_train: pl.Series,
     config: ScoringModelConfig,
 ) -> Pipeline:
     pipeline = build_model_pipeline(config)
-    pipeline.fit(X_train.to_pandas(), y_train.to_numpy())
+    X_train_pd = prepare_features_for_model(
+        X_train.to_pandas(),
+        model_name=config.model_name,
+        categorical_features=config.categorical_features,
+    )
+    pipeline.fit(X_train_pd, y_train.to_numpy())
     return pipeline

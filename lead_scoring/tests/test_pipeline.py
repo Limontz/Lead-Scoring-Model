@@ -1,15 +1,19 @@
 from datetime import datetime, timedelta
 
+import pandas as pd
 import polars as pl
 from sklearn.linear_model import LogisticRegression
 
 from lead_scoring.registry import ModelName
-from lead_scoring.scoring_model.config import ScoringModelConfig
 from lead_scoring.scoring_model.pipeline import (
     build_model,
     build_model_pipeline,
 )
-from lead_scoring.scoring_model.training import stratified_train_test_split
+from lead_scoring.scoring_model.training import (
+    prepare_features_for_model,
+    stratified_train_test_split,
+)
+from lead_scoring.tests.utils import build_test_scoring_config
 
 
 def _build_test_df() -> pl.DataFrame:
@@ -33,7 +37,7 @@ def _build_test_df() -> pl.DataFrame:
 
 def test_stratified_train_test_split() -> None:
     df = _build_test_df()
-    config = ScoringModelConfig()
+    config = build_test_scoring_config()
 
     X_train, X_test, y_train, y_test = stratified_train_test_split(
         df,
@@ -49,7 +53,7 @@ def test_stratified_train_test_split() -> None:
 
 
 def test_build_model_uses_config_and_registry() -> None:
-    config = ScoringModelConfig(
+    config = build_test_scoring_config(
         model_name=ModelName.LOGISTIC_REGRESSION,
         model_params={"C": 0.5},
     )
@@ -61,7 +65,7 @@ def test_build_model_uses_config_and_registry() -> None:
 
 
 def test_build_model_pipeline_with_logistic_regression() -> None:
-    config = ScoringModelConfig(model_name=ModelName.LOGISTIC_REGRESSION)
+    config = build_test_scoring_config(model_name=ModelName.LOGISTIC_REGRESSION)
 
     pipeline = build_model_pipeline(config)
 
@@ -73,7 +77,7 @@ def test_build_model_pipeline_with_logistic_regression() -> None:
 
 def test_pipeline_fit_predict_logistic_regression() -> None:
     df = _build_test_df()
-    config = ScoringModelConfig(model_name=ModelName.LOGISTIC_REGRESSION)
+    config = build_test_scoring_config(model_name=ModelName.LOGISTIC_REGRESSION)
 
     X_train, X_test, y_train, y_test = stratified_train_test_split(
         df,
@@ -93,3 +97,23 @@ def test_pipeline_fit_predict_logistic_regression() -> None:
 
     assert len(preds) == len(X_test_pd)
     assert all(p in [0, 1] for p in preds)
+
+
+def test_prepare_features_for_xgboost_casts_categoricals() -> None:
+    X_pd = pd.DataFrame(
+        {
+            "DEAL_DEALSOURCE": ["Inbound", "Referral"],
+            "DEAL_INDUSTRY": ["Tech", "Finance"],
+            "CONTACT_ROLE": ["HR", "CEO"],
+        }
+    )
+
+    prepared = prepare_features_for_model(
+        X_pd,
+        model_name=ModelName.XGBOOST,
+        categorical_features=["DEAL_DEALSOURCE", "DEAL_INDUSTRY"],
+    )
+
+    assert str(prepared["DEAL_DEALSOURCE"].dtype) == "category"
+    assert str(prepared["DEAL_INDUSTRY"].dtype) == "category"
+    assert str(prepared["CONTACT_ROLE"].dtype) != "category"

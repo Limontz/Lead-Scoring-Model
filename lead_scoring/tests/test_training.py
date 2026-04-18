@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 import polars as pl
 
 from lead_scoring.registry import ModelName
-from lead_scoring.scoring_model.config import ScoringModelConfig
 from lead_scoring.scoring_model.training import stratified_train_test_split, train_model
+from lead_scoring.tests.utils import build_test_scoring_config
 
 
 def _build_training_df() -> pl.DataFrame:
@@ -29,7 +29,7 @@ def _build_training_df() -> pl.DataFrame:
 def test_train_model_returns_pipeline() -> None:
 
     df = _build_training_df()
-    config = ScoringModelConfig(model_name=ModelName.LOGISTIC_REGRESSION)
+    config = build_test_scoring_config(model_name=ModelName.LOGISTIC_REGRESSION)
 
     X_train, X_test, y_train, y_test = stratified_train_test_split(
         df,
@@ -48,7 +48,7 @@ def test_train_model_returns_pipeline() -> None:
 def test_train_model_with_custom_model_params() -> None:
 
     df = _build_training_df()
-    config = ScoringModelConfig(
+    config = build_test_scoring_config(
         model_name=ModelName.LOGISTIC_REGRESSION,
         model_params={"C": 0.1, "max_iter": 500},
     )

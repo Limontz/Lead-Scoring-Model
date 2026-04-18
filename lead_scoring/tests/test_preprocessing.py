@@ -12,6 +12,7 @@ from lead_scoring.scoring_model.preprocessing import (
     _select_feature_and_target_columns,
     preprocess_data,
 )
+from lead_scoring.tests.utils import build_test_scoring_config
 
 
 def _build_raw_deals_df() -> pl.DataFrame:
@@ -133,20 +134,11 @@ def test_drop_null_values() -> None:
 
 def test_preprocess_data_integration() -> None:
     df = _build_raw_deals_df()
-    features = [
-        "DEAL_DEALSOURCE",
-        "DEAL_SOURCE_DETAIL",
-        "UTM_SOURCE",
-        "LEAD_TYPE",
-        "DEAL_INDUSTRY",
-        "CONTACT_ROLE",
-        "COMPANY_STATE",
-        "DEAL_HRIS_TECH_STACK",
-        "DEAL_CCNL_MACRO",
-    ]
+    config = build_test_scoring_config()
+    features = config.total_features
 
     result = preprocess_data(
-        df=df,
+        df=df,  # pyright: ignore[reportArgumentType]
         total_features=features,
         target_column="target_closed_won",
         from_stage=FunnelStage.MQL,
@@ -160,7 +152,7 @@ def test_preprocess_data_integration() -> None:
 def test_prepare_data_for_analysis() -> None:
     df = _build_raw_deals_df()
 
-    enriched = prepare_data_for_analysis(df)
+    enriched = prepare_data_for_analysis(df)  # pyright: ignore[reportArgumentType]
 
     assert "has_final_state" in enriched.columns
     assert "final_status" in enriched.columns
