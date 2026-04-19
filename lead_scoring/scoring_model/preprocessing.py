@@ -6,7 +6,7 @@ from pandera import polars as pa
 from pandera.typing.polars import DataFrame
 
 from lead_scoring.data.manipulations import prepare_data_for_analysis
-from lead_scoring.data.schema import PreprocessedDealsSchema, RawDealsSchemaWithDatetime
+from lead_scoring.data.schema import RawDealsSchemaWithDatetime
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,10 @@ def _select_feature_and_target_columns(
 
 
 def _drop_null_values(df: pl.DataFrame, subset: list[str]) -> pl.DataFrame:
+    """
+    I prefer to keep this function here instead of moving it to clean
+    because one could implement different logic of handling null values.
+    """
     null_count_exprs = [pl.col(column).null_count().alias(column) for column in subset]
     null_counts = df.select(null_count_exprs).to_dicts()[0]
 
@@ -54,7 +58,7 @@ def preprocess_data(
     total_features: list[str],
     target_column: str,
     from_stage: FunnelStage,
-) -> DataFrame[PreprocessedDealsSchema]:
+) -> pl.DataFrame:
 
     enriched_df = prepare_data_for_analysis(df)
     enriched_df = _filter_to_funnel_stage(enriched_df, from_stage)
@@ -64,4 +68,4 @@ def preprocess_data(
         modeling_df, total_features, target_column
     )
     modeling_df = _drop_null_values(modeling_df, total_features)
-    return DataFrame[PreprocessedDealsSchema](modeling_df)
+    return modeling_df
