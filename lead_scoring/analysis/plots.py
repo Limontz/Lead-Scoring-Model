@@ -2,6 +2,8 @@ import polars as pl
 import plotly.express as px
 import plotly.graph_objects as go
 
+from lead_scoring.analysis.defaults import get_stage_order
+
 
 def plot_stage_volumes(
     volumes: dict[str, int],
@@ -415,14 +417,11 @@ def plot_monthly_sql_to_demo_score_rate(
     return fig
 
 
-STAGE_ORDER = ["created", "mql", "sql", "opportunity", "closed_won", "closed_lost"]
-
-
 def plot_avg_deal_amount_by_stage(
     avg_amounts: dict[str, float | None],
     title: str = "Average deal amount by funnel stage",
 ) -> go.Figure:
-    stages = [s for s in STAGE_ORDER]
+    stages = [s for s in get_stage_order()]
     values = [avg_amounts[s] for s in stages]  # type: ignore[index]
     plot_df = pl.DataFrame({"stage": stages, "avg_deal_amount": values})
     fig = px.bar(

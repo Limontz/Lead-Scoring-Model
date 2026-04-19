@@ -1,10 +1,15 @@
 import polars as pl
 from lead_scoring.analysis.api import FunnelAnalysisResult, TemporalAnalysisResult
+from lead_scoring.analysis.defaults import (
+    get_categorical_features_default,
+    get_duration_features_default,
+    get_numeric_features_default,
+    get_step_config,
+    get_stage_month_cols,
+    get_temporal_conversion_cols_default,
+    get_temporal_duration_cols_default,
+)
 from lead_scoring.analysis.funnel_static import (
-    CATEGORICAL_FEATURES_DEFAULT,
-    DURATION_FEATURES_DEFAULT,
-    NUMERIC_FEATURES_DEFAULT,
-    STEP_CONFIG,
     compute_funnel_metrics,
     compute_process_metrics,
     compute_segment_funnel_metrics,
@@ -14,9 +19,6 @@ from lead_scoring.analysis.funnel_static import (
     summarize_duration_columns_by_segment,
 )
 from lead_scoring.analysis.funnel_temporal import (
-    STAGE_MONTH_COLS,
-    TEMPORAL_CONVERSION_COLS_DEFAULT,
-    TEMPORAL_DURATION_COLS_DEFAULT,
     build_temporal_summary,
     compute_monthly_created_cohort_metrics,
     compute_monthly_duration_trends,
@@ -43,14 +45,14 @@ def analyze_funnel(
         step_label = "Full funnel"
         target_col = None
     else:
-        config = STEP_CONFIG[step]
+        config = get_step_config()[step]
         step_label = str(config["label"])
         target_col = str(config["target_col"])
 
     overall_metrics = compute_funnel_metrics(df)
     process_metrics = compute_process_metrics(df)
 
-    duration_features = duration_features or DURATION_FEATURES_DEFAULT
+    duration_features = duration_features or get_duration_features_default()
     duration_summary = summarize_duration_columns(df, duration_features)
 
     if segment_col is None:
@@ -81,8 +83,8 @@ def analyze_funnel(
         segment_sql_to_demo_score=segment_sql_to_demo_score,
         duration_summary=duration_summary,
         segment_duration_summary=segment_duration_summary,
-        numeric_features=numeric_features or NUMERIC_FEATURES_DEFAULT,
-        categorical_features=categorical_features or CATEGORICAL_FEATURES_DEFAULT,
+        numeric_features=numeric_features or get_numeric_features_default(),
+        categorical_features=categorical_features or get_categorical_features_default(),
         duration_features=duration_features,
     )
 
@@ -95,14 +97,14 @@ def analyze_temporal(
     duration_cols: list[str] | None = None,
 ) -> TemporalAnalysisResult:
 
-    conversion_cols = conversion_cols or TEMPORAL_CONVERSION_COLS_DEFAULT
-    duration_cols = duration_cols or TEMPORAL_DURATION_COLS_DEFAULT
+    conversion_cols = conversion_cols or get_temporal_conversion_cols_default()
+    duration_cols = duration_cols or get_temporal_duration_cols_default()
 
     summary_stats = build_temporal_summary(df)
 
     monthly_stage_entries = compute_monthly_stage_entries(
         df,
-        stage_month_cols=STAGE_MONTH_COLS,
+        stage_month_cols=get_stage_month_cols(),
     )
     monthly_created_cohort = compute_monthly_created_cohort_metrics(df)
     monthly_duration_trends = compute_monthly_duration_trends(
@@ -119,7 +121,7 @@ def analyze_temporal(
         monthly_segment_stage_entries = compute_monthly_segment_stage_entries(
             df,
             segment_col=segment_col,
-            stage_month_cols=STAGE_MONTH_COLS,
+            stage_month_cols=get_stage_month_cols(),
         )
         monthly_segment_created_cohort = compute_monthly_segment_conversion_trends(
             df,

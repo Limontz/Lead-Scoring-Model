@@ -2,76 +2,9 @@ from dataclasses import dataclass, field
 
 import polars as pl
 
-
-FLOAT_METRIC_ROUND_DIGITS = 2
-
-# TODO: put this variables in functions in another file and call it defaults.py
-STEP_CONFIG: dict[str, dict[str, str | pl.Expr | None]] = {
-    "created_to_mql": {
-        "scope_filter": None,
-        "target_col": "is_mql",
-        "label": "Created → MQL",
-    },
-    "mql_to_sql": {
-        "scope_filter": pl.col("is_mql"),
-        "target_col": "is_sql",
-        "label": "MQL → SQL",
-    },
-    "mql_to_won": {
-        "scope_filter": pl.col("is_mql"),
-        "target_col": "is_closed_won",
-        "label": "MQL → Closed Won",
-    },
-    "sql_to_opp": {
-        "scope_filter": pl.col("is_sql"),
-        "target_col": "is_opportunity",
-        "label": "SQL → Opportunity",
-    },
-    "sql_to_won": {
-        "scope_filter": pl.col("is_sql"),
-        "target_col": "is_closed_won",
-        "label": "SQL → Closed Won",
-    },
-    "opp_to_won": {
-        "scope_filter": pl.col("is_opportunity"),
-        "target_col": "is_closed_won",
-        "label": "Opportunity → Closed Won",
-    },
-}
-
-
-NUMERIC_FEATURES_DEFAULT = [
-    "DEAL_DEMO_SCORE",
-    "DEAL_AMOUNT",
-    "DEAL_NUMBER_OF_EMPLOYEES",
-    "DEAL_NUMERO_CEDOLINI",
-    "DEAL_NUMBER_TIMES_CONTACTED",
-    "COMPANY_REVENUE",
-    "COMPANY_FUNDING_YEAR",
-]
-
-CATEGORICAL_FEATURES_DEFAULT = [
-    "DEAL_DEALSOURCE",
-    "DEAL_SOURCE_DETAIL",
-    "UTM_SOURCE",
-    "LEAD_TYPE",
-    "DEAL_INDUSTRY",
-    "CONTACT_ROLE",
-    "COMPANY_STATE",
-    "DEAL_HRIS_TECH_STACK",
-    "DEAL_CCNL_MACRO",
-]
-
-DURATION_FEATURES_DEFAULT = [
-    "creation_to_mql_days",
-    "mql_to_sql_days",
-    "sql_to_opp_days",
-    "opp_to_won_days",
-    "opp_to_lost_days",
-    "creation_to_won_days",
-    "creation_to_lost_days",
-    "creation_to_closed_days",
-]
+from lead_scoring.analysis.defaults import (
+    get_step_config,
+)
 
 
 @dataclass
@@ -92,7 +25,7 @@ def get_step_scope(df: pl.DataFrame, step: str | None) -> pl.DataFrame:
     if step is None:
         return df
 
-    config = STEP_CONFIG[step]
+    config = get_step_config()[step]
     if config["scope_filter"] is None:
         return df
     return df.filter(config["scope_filter"])
@@ -111,7 +44,7 @@ def compute_funnel_metrics(df: pl.DataFrame) -> FunnelMetrics:
     def safe_rate(num: int, den: int) -> float | None:
         if den == 0:
             return None
-        return round(num / den, FLOAT_METRIC_ROUND_DIGITS)
+        return round(num / den, 2)
 
     step_rates = {
         "created_to_mql": safe_rate(volumes["mql"], volumes["created"]),
@@ -163,75 +96,43 @@ def compute_segment_funnel_metrics(
         .with_columns(
             [
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
-                )
+                .then((pl.col("mql") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("creation_to_mql"),
                 pl.when(pl.col("mql") > 0)
-                .then((pl.col("sql") / pl.col("mql")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then((pl.col("sql") / pl.col("mql")).round(2))
                 .otherwise(None)
                 .alias("mql_to_sql"),
                 pl.when(pl.col("sql") > 0)
-                .then(
-                    (pl.col("opportunity") / pl.col("sql")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("opportunity") / pl.col("sql")).round(2))
                 .otherwise(None)
                 .alias("sql_to_opp"),
                 pl.when(pl.col("opportunity") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("opportunity")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("opportunity")).round(2))
                 .otherwise(None)
                 .alias("opp_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("sql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
-                )
+                .then((pl.col("sql") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("creation_to_sql"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("opportunity") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("opportunity") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("creation_to_opportunity"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("creation_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("closed_lost") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_lost") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("creation_to_lost"),
                 pl.when(pl.col("mql") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("mql")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("mql")).round(2))
                 .otherwise(None)
                 .alias("mql_to_won"),
                 pl.when(pl.col("sql") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("sql")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("sql")).round(2))
                 .otherwise(None)
                 .alias("sql_to_won"),
             ]
@@ -253,7 +154,7 @@ def compute_segment_sql_to_demo_score_rate(
                 pl.col("DEAL_DEMO_SCORE")
                 .is_not_null()
                 .mean()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
+                .round(2)
                 .alias("sql_to_demo_score_rate"),
             ]
         )
@@ -272,13 +173,10 @@ def summarize_numeric_by_target(
         .agg(
             [
                 pl.len().alias("n"),
-                pl.col(feature).mean().round(FLOAT_METRIC_ROUND_DIGITS).alias("mean"),
-                pl.col(feature)
-                .median()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
-                .alias("median"),
-                pl.col(feature).min().round(FLOAT_METRIC_ROUND_DIGITS).alias("min"),
-                pl.col(feature).max().round(FLOAT_METRIC_ROUND_DIGITS).alias("max"),
+                pl.col(feature).mean().round(2).alias("mean"),
+                pl.col(feature).median().round(2).alias("median"),
+                pl.col(feature).min().round(2).alias("min"),
+                pl.col(feature).max().round(2).alias("max"),
             ]
         )
         .sort(target_col)
@@ -297,13 +195,10 @@ def summarize_numeric_by_target_and_segment(
         .agg(
             [
                 pl.len().alias("n"),
-                pl.col(feature).mean().round(FLOAT_METRIC_ROUND_DIGITS).alias("mean"),
-                pl.col(feature)
-                .median()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
-                .alias("median"),
-                pl.col(feature).min().round(FLOAT_METRIC_ROUND_DIGITS).alias("min"),
-                pl.col(feature).max().round(FLOAT_METRIC_ROUND_DIGITS).alias("max"),
+                pl.col(feature).mean().round(2).alias("mean"),
+                pl.col(feature).median().round(2).alias("median"),
+                pl.col(feature).min().round(2).alias("min"),
+                pl.col(feature).max().round(2).alias("max"),
             ]
         )
         .sort([target_col, segment_col])
@@ -322,10 +217,7 @@ def summarize_categorical_conversion(
         .agg(
             [
                 pl.len().alias("n"),
-                pl.col(target_col)
-                .mean()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
-                .alias("conversion_rate"),
+                pl.col(target_col).mean().round(2).alias("conversion_rate"),
             ]
         )
         .filter(pl.col("n") >= min_count)
@@ -346,10 +238,7 @@ def summarize_categorical_conversion_by_segment(
         .agg(
             [
                 pl.len().alias("n"),
-                pl.col(target_col)
-                .mean()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
-                .alias("conversion_rate"),
+                pl.col(target_col).mean().round(2).alias("conversion_rate"),
             ]
         )
         .filter(pl.col("n") >= min_count)
@@ -367,22 +256,10 @@ def summarize_duration_columns(
             agg_exprs.extend(
                 [
                     pl.col(col).count().alias(f"{col}__n"),
-                    pl.col(col)
-                    .mean()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__mean"),
-                    pl.col(col)
-                    .median()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__median"),
-                    pl.col(col)
-                    .min()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__min"),
-                    pl.col(col)
-                    .max()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__max"),
+                    pl.col(col).mean().round(2).alias(f"{col}__mean"),
+                    pl.col(col).median().round(2).alias(f"{col}__median"),
+                    pl.col(col).min().round(2).alias(f"{col}__min"),
+                    pl.col(col).max().round(2).alias(f"{col}__max"),
                 ]
             )
 
@@ -400,14 +277,8 @@ def summarize_duration_columns_by_segment(
             agg_exprs.extend(
                 [
                     pl.col(col).count().alias(f"{col}__n"),
-                    pl.col(col)
-                    .mean()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__mean"),
-                    pl.col(col)
-                    .median()
-                    .round(FLOAT_METRIC_ROUND_DIGITS)
-                    .alias(f"{col}__median"),
+                    pl.col(col).mean().round(2).alias(f"{col}__mean"),
+                    pl.col(col).median().round(2).alias(f"{col}__median"),
                 ]
             )
 
@@ -448,7 +319,7 @@ def summarize_closed_lost_reasons_by_segment(
 def get_sql_to_demo_score_rate(df: pl.DataFrame) -> float | None:
     sql_df = df.filter(pl.col("is_sql"))
     value = sql_df.select(pl.col("DEAL_DEMO_SCORE").is_not_null().mean()).item()
-    return round(float(value), FLOAT_METRIC_ROUND_DIGITS)
+    return round(float(value), 2)
 
 
 def compute_process_metrics(df: pl.DataFrame) -> FunnelProcessMetrics:
@@ -470,12 +341,12 @@ def compute_avg_deal_amount_by_stage(df: pl.DataFrame) -> dict[str, float | None
     )
 
     return {
-        "created": round(float(created_avg), FLOAT_METRIC_ROUND_DIGITS),
-        "mql": round(float(mql_avg), FLOAT_METRIC_ROUND_DIGITS),
-        "sql": round(float(sql_avg), FLOAT_METRIC_ROUND_DIGITS),
-        "opportunity": round(float(opportunity_avg), FLOAT_METRIC_ROUND_DIGITS),
-        "closed_won": round(float(closed_won_avg), FLOAT_METRIC_ROUND_DIGITS),
-        "closed_lost": round(float(closed_lost_avg), FLOAT_METRIC_ROUND_DIGITS),
+        "created": round(float(created_avg), 2),
+        "mql": round(float(mql_avg), 2),
+        "sql": round(float(sql_avg), 2),
+        "opportunity": round(float(opportunity_avg), 2),
+        "closed_won": round(float(closed_won_avg), 2),
+        "closed_lost": round(float(closed_lost_avg), 2),
     }
 
 
