@@ -2,36 +2,9 @@ from dataclasses import dataclass
 
 import polars as pl
 
-
-FLOAT_METRIC_ROUND_DIGITS = 2
-
-STAGE_MONTH_COLS = {
-    "created": "created_month",
-    "mql": "mql_month",
-    "sql": "sql_month",
-    "opportunity": "opportunity_month",
-    "closed_won": "closed_won_month",
-    "closed_lost": "closed_lost_month",
-}
-
-TEMPORAL_CONVERSION_COLS_DEFAULT = [
-    "cr_created_to_mql",
-    "cr_mql_to_sql",
-    "cr_sql_to_opp",
-    "cr_opp_to_won",
-    "cr_created_to_won",
-]
-
-TEMPORAL_DURATION_COLS_DEFAULT = [
-    "creation_to_mql_days",
-    "mql_to_sql_days",
-    "sql_to_opp_days",
-    "opp_to_won_days",
-    "opp_to_lost_days",
-    "creation_to_won_days",
-    "creation_to_lost_days",
-    "creation_to_closed_days",
-]
+from lead_scoring.analysis.defaults import (
+    get_stage_month_cols,
+)
 
 
 @dataclass
@@ -43,8 +16,10 @@ class TemporalSummary:
 
 def compute_monthly_stage_entries(
     df: pl.DataFrame,
-    stage_month_cols: dict[str, str] = STAGE_MONTH_COLS,
+    stage_month_cols: dict[str, str] | None = None,
 ) -> pl.DataFrame:
+    if stage_month_cols is None:
+        stage_month_cols = get_stage_month_cols()
     frames: list[pl.DataFrame] = []
 
     for stage_name, month_col in stage_month_cols.items():
@@ -103,45 +78,27 @@ def compute_monthly_created_cohort_metrics(df: pl.DataFrame) -> pl.DataFrame:
         .with_columns(
             [
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
-                )
+                .then((pl.col("mql") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("cr_created_to_mql"),
                 pl.when(pl.col("mql") > 0)
-                .then((pl.col("sql") / pl.col("mql")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then((pl.col("sql") / pl.col("mql")).round(2))
                 .otherwise(None)
                 .alias("cr_mql_to_sql"),
                 pl.when(pl.col("sql") > 0)
-                .then(
-                    (pl.col("opportunity") / pl.col("sql")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("opportunity") / pl.col("sql")).round(2))
                 .otherwise(None)
                 .alias("cr_sql_to_opp"),
                 pl.when(pl.col("opportunity") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("opportunity")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("opportunity")).round(2))
                 .otherwise(None)
                 .alias("cr_opp_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("cr_created_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("closed_lost") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_lost") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("cr_created_to_lost"),
             ]
@@ -158,9 +115,7 @@ def compute_monthly_duration_trends(
 
     for col in duration_cols:
         if col in df.columns:
-            agg_exprs.append(
-                pl.col(col).mean().round(FLOAT_METRIC_ROUND_DIGITS).alias(col)
-            )
+            agg_exprs.append(pl.col(col).mean().round(2).alias(col))
 
     if not agg_exprs:
         return pl.DataFrame({"created_month": []})
@@ -184,7 +139,7 @@ def compute_monthly_sql_to_demo_score_rate(df: pl.DataFrame) -> pl.DataFrame:
                 pl.col("DEAL_DEMO_SCORE")
                 .is_not_null()
                 .mean()
-                .round(FLOAT_METRIC_ROUND_DIGITS)
+                .round(2)
                 .alias("sql_to_demo_score_rate"),
             ]
         )
@@ -212,37 +167,23 @@ def compute_monthly_segment_conversion_trends(
         .with_columns(
             [
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("created")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("cr_created_to_won"),
                 pl.when(pl.col("created") > 0)
-                .then(
-                    (pl.col("mql") / pl.col("created")).round(FLOAT_METRIC_ROUND_DIGITS)
-                )
+                .then((pl.col("mql") / pl.col("created")).round(2))
                 .otherwise(None)
                 .alias("cr_created_to_mql"),
                 pl.when(pl.col("mql") > 0)
-                .then((pl.col("sql") / pl.col("mql")).round(FLOAT_METRIC_ROUND_DIGITS))
+                .then((pl.col("sql") / pl.col("mql")).round(2))
                 .otherwise(None)
                 .alias("cr_mql_to_sql"),
                 pl.when(pl.col("sql") > 0)
-                .then(
-                    (pl.col("opportunity") / pl.col("sql")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("opportunity") / pl.col("sql")).round(2))
                 .otherwise(None)
                 .alias("cr_sql_to_opp"),
                 pl.when(pl.col("opportunity") > 0)
-                .then(
-                    (pl.col("closed_won") / pl.col("opportunity")).round(
-                        FLOAT_METRIC_ROUND_DIGITS
-                    )
-                )
+                .then((pl.col("closed_won") / pl.col("opportunity")).round(2))
                 .otherwise(None)
                 .alias("cr_opp_to_won"),
             ]
@@ -254,8 +195,10 @@ def compute_monthly_segment_conversion_trends(
 def compute_monthly_segment_stage_entries(
     df: pl.DataFrame,
     segment_col: str,
-    stage_month_cols: dict[str, str] = STAGE_MONTH_COLS,
+    stage_month_cols: dict[str, str] | None = None,
 ) -> pl.DataFrame:
+    if stage_month_cols is None:
+        stage_month_cols = get_stage_month_cols()
     frames: list[pl.DataFrame] = []
 
     for stage_name, month_col in stage_month_cols.items():
@@ -287,9 +230,7 @@ def compute_monthly_segment_duration_trends(
 
     for col in duration_cols:
         if col in df.columns:
-            agg_exprs.append(
-                pl.col(col).mean().round(FLOAT_METRIC_ROUND_DIGITS).alias(col)
-            )
+            agg_exprs.append(pl.col(col).mean().round(2).alias(col))
 
     if not agg_exprs:
         return pl.DataFrame({"created_month": [], segment_col: []})

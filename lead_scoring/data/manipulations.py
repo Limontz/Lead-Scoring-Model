@@ -3,15 +3,7 @@ from pandera import polars as pa
 from pandera.typing.polars import DataFrame
 
 from lead_scoring.data.schema import EnrichedDealsSchema, RawDealsSchemaWithDatetime
-
-FUNNEL_STAGE_DATE_COLS = {
-    "created": "DEAL_CREATEDATE",
-    "mql": "DEAL_MQL_DATETIME",
-    "sql": "DEAL_SQL_DATETIME",
-    "opportunity": "DEAL_OPPORTUNITY_DATETIME",
-    "closed_won": "DEAL_CLOSED_WON_DATE",
-    "closed_lost": "DEAL_DATETIME_ENTERED_CLOSEDLOST",
-}
+from lead_scoring.analysis.defaults import get_funnel_stage_date_cols
 
 
 def add_stage_flags(df: pl.DataFrame) -> pl.DataFrame:
@@ -62,8 +54,10 @@ def _add_final_state_columns(df: pl.DataFrame) -> pl.DataFrame:
 
 def _add_month_columns(
     df: pl.DataFrame,
-    stage_date_cols: dict[str, str] = FUNNEL_STAGE_DATE_COLS,
+    stage_date_cols: dict[str, str] | None = None,
 ) -> pl.DataFrame:
+    if stage_date_cols is None:
+        stage_date_cols = get_funnel_stage_date_cols()
     exprs = [
         pl.col(date_col).dt.truncate("1mo").alias(f"{stage_name}_month")
         for stage_name, date_col in stage_date_cols.items()
