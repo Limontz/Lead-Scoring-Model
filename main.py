@@ -55,6 +55,8 @@ if __name__ == "__main__":
     )
     print("Model performance:")
     print(f"  ROC-AUC: {metrics.roc_auc:.2f}")
+    print(f"  Missed won leads: {metrics.missed_won_leads_count}")
+    print(f"  Missed won rate (on won leads): {metrics.missed_won_leads_rate:.2%}")
     print(f"  Top-20% conversion rate: {metrics.top_fraction_conversion_rate:.2%}")
     print(f"  Lift@20%: {metrics.lift_at_top_fraction:.2f}x")
     print("\nRanking quality by score bucket (1 = top bucket):")

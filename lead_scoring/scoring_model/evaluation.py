@@ -14,10 +14,25 @@ class ClassificationMetrics:
     roc_auc: float
     average_precision: float
     accuracy: float
+    missed_won_leads_count: int
+    missed_won_leads_rate: float
     baseline_conversion_rate: float
     top_fraction_conversion_rate: float
     lift_at_top_fraction: float
     ranking_by_bucket: pl.DataFrame
+
+
+def evaluate_missed_won_leads(
+    y_true: pl.Series,
+    y_pred: pl.Series,
+) -> tuple[int, float]:
+    eval_df = pl.DataFrame({"target": y_true, "pred": y_pred})
+    missed_won_count = eval_df.filter(
+        (pl.col("target") == 1) & (pl.col("pred") == 0)
+    ).height
+    total_won = eval_df.filter(pl.col("target") == 1).height
+
+    return missed_won_count, missed_won_count / total_won
 
 
 def create_score_buckets(
@@ -100,6 +115,10 @@ def evaluate_binary_classifier(
 
     y_pred = pipeline.predict(X_test_pd)
     y_score = pipeline.predict_proba(X_test_pd)[:, 1]
+    missed_won_count, missed_won_rate = evaluate_missed_won_leads(
+        y_true=y_test,
+        y_pred=pl.Series(name="prediction", values=y_pred),
+    )
     (
         baseline_rate,
         top_fraction_rate,
@@ -116,6 +135,8 @@ def evaluate_binary_classifier(
         roc_auc=float(roc_auc_score(y_test_np, y_score)),
         average_precision=float(average_precision_score(y_test_np, y_score)),
         accuracy=float(accuracy_score(y_test_np, y_pred)),
+        missed_won_leads_count=missed_won_count,
+        missed_won_leads_rate=missed_won_rate,
         baseline_conversion_rate=baseline_rate,
         top_fraction_conversion_rate=top_fraction_rate,
         lift_at_top_fraction=lift_at_top_fraction,
