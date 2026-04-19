@@ -54,9 +54,11 @@ if __name__ == "__main__":
         from_stage=FunnelStage.MQL,
     )
     print("Model performance:")
-    print(f"  ROC-AUC: {metrics.roc_auc:.8f}")
-    print(f"  Average Precision: {metrics.average_precision:.8f}")
-    print(f"  Accuracy: {metrics.accuracy:.8f}")
+    print(f"  ROC-AUC: {metrics.roc_auc:.2f}")
+    print(f"  Top-20% conversion rate: {metrics.top_fraction_conversion_rate:.2%}")
+    print(f"  Lift@20%: {metrics.lift_at_top_fraction:.2f}x")
+    print("\nRanking quality by score bucket (1 = top bucket):")
+    print(metrics.ranking_by_bucket)
 
     try:
         weights_df = get_linear_model_weights(pipeline)
