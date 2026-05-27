@@ -1,4 +1,4 @@
-# Assignment Jet HR
+# Lead Scoring Model
 
 Contact: `marcosimonte96@gmail.com`
 
@@ -14,7 +14,7 @@ Task reports:
 
 ```bash
 git clone git@github.com:Limontz/Assignment-Jet-HR.git
-cd Assignment-Jet-HR
+cd Lead-Scoring-Model
 uv sync --frozen
 uv run pytest -q
 uv run python main.py
